@@ -1,0 +1,13 @@
+[package]
+authors = ["Max Brown"]
+description = "Parse and manipulate common bioinformatic formats in nushell."
+repository = "https://github.com/"
+edition = "2021"
+license = "MIT"
+name = "nu_plugin_bio"
+version = "0.70.0"
+
+[dependencies]
+nu-plugin = { version = "0.70.0" }
+nu-protocol = { version = "0.70.0", features = ["plugin"]}
+noodles = { version = "0.27.0", features = ["fasta"] }
