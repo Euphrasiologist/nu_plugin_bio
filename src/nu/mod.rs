@@ -4,9 +4,16 @@ use nu_protocol::{Category, Signature, Value};
 
 impl Plugin for Bio {
     fn signature(&self) -> Vec<Signature> {
-        vec![Signature::build("from fasta")
-            .usage("Parse a fasta file.")
-            .category(Category::Experimental)]
+        vec![
+            Signature::build("from fasta")
+                .usage("Parse a fasta file.")
+                .switch("description", "parse the fasta header description", Some('d'))
+                .category(Category::Experimental),
+            Signature::build("from fa")
+                .usage("Parse a fasta file.")
+                .switch("description", "parse the fasta header description", Some('d'))
+                .category(Category::Experimental),
+        ]
     }
 
     fn run(
@@ -17,6 +24,7 @@ impl Plugin for Bio {
     ) -> Result<Value, LabeledError> {
         match name {
             "from fasta" => self.from_fasta(call, input),
+            "from fa" => self.from_fasta(call, input),
             _ => Err(LabeledError {
                 label: "Plugin call with wrong name signature".into(),
                 msg: "the signature used to call the plugin does not match any name in the plugin signature vector".into(),
