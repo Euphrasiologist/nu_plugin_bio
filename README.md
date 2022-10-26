@@ -21,22 +21,22 @@ open ./tests/test.fasta
 ## Aims
 
 Aim to support the following:
-- [] BAM 1.6
-- [] BCF 2.2
-- [] BED
-- [] BGZF
-- [] CRAM 3.0
-- [-] FASTA
-- [] FASTQ
-- [] GFF3
-- [] GTF 2.2
-- [] SAM 1.6
-- [] tabix
-- [] VCF 4.3
+- [x] BAM 1.6
+- [ ] BCF 2.2
+- [ ] BED
+- [ ] BGZF
+- [ ] CRAM 3.0
+- [x] FASTA
+- [ ] FASTQ
+- [ ] GFF3
+- [ ] GTF 2.2
+- [x] SAM 1.6
+- [ ] tabix
+- [ ] VCF 4.3
 
 Plus maybe some generic functions such as:
-- [] indexing
-- [] viewing
-- [] getting headers
-- [] counting lengths
-- [] changing between file formats
+- [ ] indexing
+- [ ] viewing
+- [ ] getting headers
+- [ ] counting lengths
+- [ ] changing between file formats
