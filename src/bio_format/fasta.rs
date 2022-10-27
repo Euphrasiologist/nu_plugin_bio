@@ -3,6 +3,8 @@ use noodles::fasta;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::{Config, Value};
 
+// TODO: add fastq here too.
+
 /// Parse a fasta file into a nushell structure.
 pub fn from_fasta_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>, LabeledError> {
     // parse description flag.
