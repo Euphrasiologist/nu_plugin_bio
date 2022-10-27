@@ -1,4 +1,6 @@
-/// BAM parsing facility.
+/// SAM + BAM parsing facility.
 pub mod bam;
 /// Fasta parsing facility.
 pub mod fasta;
+/// BCF + VCF parsing facility.
+pub mod bcf;

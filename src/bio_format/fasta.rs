@@ -1,10 +1,10 @@
 /// The fasta format
 use noodles::fasta;
-use nu_plugin::EvaluatedCall;
+use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::{Config, Value};
 
 /// Parse a fasta file into a nushell structure.
-pub fn from_fasta_inner(call: &EvaluatedCall, input: &Value) -> Vec<Value> {
+pub fn from_fasta_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>, LabeledError> {
     // parse description flag.
     let description = call.has_flag("description");
 
@@ -24,7 +24,16 @@ pub fn from_fasta_inner(call: &EvaluatedCall, input: &Value) -> Vec<Value> {
     let mut value_records = Vec::new();
 
     for record in reader.records() {
-        let r = record.unwrap();
+        let r = match record {
+            Ok(rec) => rec,
+            Err(e) => {
+                return Err(LabeledError {
+                    label: "Record reading failed.".into(),
+                    msg: format!("cause of failure: {}", e),
+                    span: Some(call.head),
+                })
+            }
+        };
         let id = r.name();
         let seq = r.sequence().as_ref();
 
@@ -60,5 +69,5 @@ pub fn from_fasta_inner(call: &EvaluatedCall, input: &Value) -> Vec<Value> {
         })
     }
 
-    value_records
+    Ok(value_records)
 }

@@ -22,9 +22,9 @@ open ./tests/test.fasta
 
 Aim to support the following:
 - [x] BAM 1.6
-- [ ] BCF 2.2
+- [x] BCF 2.2
 - [ ] BED
-- [ ] BGZF
+- [ ] BGZF (gzipped versions of all file formats.)
 - [ ] CRAM 3.0
 - [x] FASTA
 - [ ] FASTQ
@@ -32,7 +32,8 @@ Aim to support the following:
 - [ ] GTF 2.2
 - [x] SAM 1.6
 - [ ] tabix
-- [ ] VCF 4.3
+- [x] VCF 4.3
+- [ ] GFA v1 (https://github.com/chfi/rs-gfa)
 
 Plus maybe some generic functions such as:
 - [ ] indexing

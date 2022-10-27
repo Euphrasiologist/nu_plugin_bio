@@ -10,4 +10,4 @@ version = "0.70.0"
 [dependencies]
 nu-plugin = { version = "0.70.0" }
 nu-protocol = { version = "0.70.0", features = ["plugin"]}
-noodles = { version = "0.28.0", features = ["fasta", "bam", "sam"] }
+noodles = { version = "0.28.0", features = ["fasta", "bam", "sam", "bcf", "vcf"] }
