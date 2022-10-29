@@ -18,7 +18,7 @@ register nu_plugin_bio/target/release/nu_plugin_bio
 open ./tests/test.fasta
 ```
 
-The backend is a `noodles` wrapper.
+The backend is a <a href="https://github.com/zaeleus/noodles/">`noodles`</a> wrapper, an excellent, all-Rust bioinformatics I/O library.
 
 ## Aims
 
@@ -26,15 +26,13 @@ Aim to support the following:
 - [x] BAM 1.6
 - [x] BCF 2.2
 - [ ] BED
-- [ ] BGZF (gzipped versions of all file formats.)
 - [ ] CRAM 3.0
 - [x] FASTA
-- [ ] FASTQ
+- [x] FASTQ
 - [x] GFF3
 - [ ] GTF 2.2
 - [x] SAM 1.6
 - [x] VCF 4.3
-- [ ] GFA v1 (https://github.com/chfi/rs-gfa)
 
 Plus maybe some generic functions such as:
 - [ ] indexing
