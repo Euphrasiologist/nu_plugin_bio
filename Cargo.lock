@@ -56,12 +56,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.66"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
-
-[[package]]
 name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -136,15 +130,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "bstr"
-version = "0.2.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -163,26 +148,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95ebf10dda65f19ff0f42ea15572a359ed60d7fc74fdc984d90310937be0014b"
 dependencies = [
  "utf8-width",
-]
-
-[[package]]
-name = "bytemuck"
-version = "1.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f5715e491b5a1598fc2bef5a606847b5dc1d48ea625bd3c02c00de8285591da"
-dependencies = [
- "bytemuck_derive",
-]
-
-[[package]]
-name = "bytemuck_derive"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b9e1f5fa78f69496407a27ae9ed989e3c3b072310286f5ef385525e4cbc24a9"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -460,12 +425,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fnv"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
 name = "getrandom"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -474,22 +433,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
-]
-
-[[package]]
-name = "gfa"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9632601a032d2ae43f5050b454dd27c2add69b2e52bd46a4888f3aeb6e3629f5"
-dependencies = [
- "anyhow",
- "bstr",
- "bytemuck",
- "fnv",
- "lazy_static",
- "memmap",
- "nom 5.1.2",
- "regex",
 ]
 
 [[package]]
@@ -598,19 +541,6 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
-
-[[package]]
-name = "lexical-core"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6607c62aa161d23d17a9072cc5da0be67cdfc89d3afb1e8d9c842bebc2525ffe"
-dependencies = [
- "arrayvec 0.5.2",
- "bitflags",
- "cfg-if",
- "ryu",
- "static_assertions",
-]
 
 [[package]]
 name = "lexical-core"
@@ -736,16 +666,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
-name = "memmap"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "memoffset"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -814,17 +734,6 @@ dependencies = [
 
 [[package]]
 name = "nom"
-version = "5.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb4262d26ed83a1c0a33a38fe2bb15797329c85770da05e6b828ddb782627af"
-dependencies = [
- "lexical-core 0.7.6",
- "memchr",
- "version_check",
-]
-
-[[package]]
-name = "nom"
 version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
@@ -835,13 +744,14 @@ dependencies = [
 
 [[package]]
 name = "noodles"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c316c8ec942acc62a673918f1f3e0efbb4388a201da0f0423d0eea706bf4e120"
+checksum = "30fd5cce0e234cf9e5c59208c06a1737db5399f526c1f58c761ea453b57cc91b"
 dependencies = [
  "noodles-bam",
  "noodles-bcf",
  "noodles-fasta",
+ "noodles-fastq",
  "noodles-gff",
  "noodles-sam",
  "noodles-vcf",
@@ -849,9 +759,9 @@ dependencies = [
 
 [[package]]
 name = "noodles-bam"
-version = "0.23.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "955994c6824e090770e302bd36a8710d65d55860fdd631f73cfe0477e7391466"
+checksum = "f52d708c3466b33cbf4a4e98df9fb8b1a704709c841c41c4655701f92c4c05bb"
 dependencies = [
  "bit-vec",
  "byteorder",
@@ -865,9 +775,9 @@ dependencies = [
 
 [[package]]
 name = "noodles-bcf"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baa06d876b6d1fd2000a1319b246f41d3084de7c07dd4b6a9055c9ad2f0e7685"
+checksum = "795dba2633a818b4851f7fb93c95714009ebeda556ef4c09bd145218beaea463"
 dependencies = [
  "byteorder",
  "indexmap",
@@ -879,9 +789,9 @@ dependencies = [
 
 [[package]]
 name = "noodles-bgzf"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a22abe9012eb99734cda8f3b409b7c264d232484a3bd32bee61bcd4172c793fc"
+checksum = "796758951544bea19afd85e236ca59c7cdef588b6988dede37c7c7a1a5146211"
 dependencies = [
  "byteorder",
  "bytes",
@@ -897,9 +807,9 @@ checksum = "a535f23a76e1d159401d70d5766ab116154d6774961e00559978bf7615f72fe4"
 
 [[package]]
 name = "noodles-csi"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9572ef5fd9fee3b8ad2a5b2f96ea113a0325d54d4d3a998f70902d249aa8cc39"
+checksum = "e2c6494ee69043b2a7623f060bd6b7abe52f48ee10d641cf1aaf78ac861bd46b"
 dependencies = [
  "bit-vec",
  "byteorder",
@@ -909,9 +819,9 @@ dependencies = [
 
 [[package]]
 name = "noodles-fasta"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00d7ee96e1404c0ef7e1406fe1303aa4c0c0f308b738ed6420493cc582c88bc0"
+checksum = "2730b9e2c2e8422b3b62e4ca91bc784f1210ba35d67a20cb81d33ffc0e8c32c7"
 dependencies = [
  "bytes",
  "memchr",
@@ -920,10 +830,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "noodles-gff"
-version = "0.8.0"
+name = "noodles-fastq"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e15f97374ac43d56043af0d4bf2abdbf23ca998f60894d1151f5ec6babe15868"
+checksum = "e695895b63ac224f24f860f185d50638093d142e911b974c8876f7c28cabac76"
+
+[[package]]
+name = "noodles-gff"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8990b5fdbdccabfd5d8dbacb52087bdf42b2947b13d38a200e0887f3c7688c7"
 dependencies = [
  "noodles-core",
  "percent-encoding",
@@ -931,13 +847,13 @@ dependencies = [
 
 [[package]]
 name = "noodles-sam"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3af665f170cdb2fe92cdd6189e140e7d2ee52c3f5ed2754cb3daef66d9c94fd0"
+checksum = "2ceb3845da63c34509424b470a5c892e1bdb9a9b5aeea826431abef41231748c"
 dependencies = [
  "bitflags",
  "indexmap",
- "lexical-core 0.8.5",
+ "lexical-core",
  "memchr",
  "noodles-bgzf",
  "noodles-core",
@@ -948,9 +864,9 @@ dependencies = [
 
 [[package]]
 name = "noodles-tabix"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce0e08e93629bf6f8ff2649fac2a190ad3dd16534a03b3146dd3bedcb1c1b62"
+checksum = "f25f923af05f97cb5ffc2b554bcbec6eb15ad7d199c3b89212129e364b5faac0"
 dependencies = [
  "bit-vec",
  "byteorder",
@@ -962,13 +878,13 @@ dependencies = [
 
 [[package]]
 name = "noodles-vcf"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8d2468ffa65f90fc19022b59bd827c9f8c367b2452734e13b28ed4cb1006f26"
+checksum = "7ea8fd6877c229c7aff9d69621e58347120eec76ca35a2e8560df52b1cba3b44"
 dependencies = [
  "indexmap",
  "memchr",
- "nom 7.1.1",
+ "nom",
  "noodles-bgzf",
  "noodles-core",
  "noodles-csi",
@@ -1086,7 +1002,6 @@ dependencies = [
 name = "nu_plugin_bio"
 version = "0.70.0"
 dependencies = [
- "gfa",
  "noodles",
  "nu-plugin",
  "nu-protocol",

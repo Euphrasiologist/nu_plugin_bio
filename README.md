@@ -18,6 +18,8 @@ register nu_plugin_bio/target/release/nu_plugin_bio
 open ./tests/test.fasta
 ```
 
+The backend is a `noodles` wrapper.
+
 ## Aims
 
 Aim to support the following:
@@ -28,10 +30,9 @@ Aim to support the following:
 - [ ] CRAM 3.0
 - [x] FASTA
 - [ ] FASTQ
-- [ ] GFF3
+- [x] GFF3
 - [ ] GTF 2.2
 - [x] SAM 1.6
-- [ ] tabix
 - [x] VCF 4.3
 - [ ] GFA v1 (https://github.com/chfi/rs-gfa)
 

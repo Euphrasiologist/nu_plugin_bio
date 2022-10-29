@@ -4,7 +4,5 @@ pub mod bam;
 pub mod fasta;
 /// BCF + VCF parsing facility.
 pub mod bcf;
-/// GFA parsing facility
-pub mod gfa;
 /// GFF(3) parsing facility
 pub mod gff;

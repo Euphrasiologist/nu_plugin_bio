@@ -21,6 +21,32 @@ impl Plugin for Bio {
                     Some('d'),
                 )
                 .category(Category::Experimental),
+            Signature::build("from fastq")
+                .usage("Parse a fastq file.")
+                .switch(
+                    "description",
+                    "parse the fastq header description",
+                    Some('d'),
+                )
+                .switch(
+                    "quality-scores",
+                    "parse the fastq quality scores",
+                    Some('q'),
+                )
+                .category(Category::Experimental),
+            Signature::build("from fq")
+                .usage("Parse a fastq file.")
+                .switch(
+                    "description",
+                    "parse the fastq header description",
+                    Some('d'),
+                )
+                .switch(
+                    "quality-scores",
+                    "parse the fastq quality scores",
+                    Some('q'),
+                )
+                .category(Category::Experimental),
             Signature::build("from bam")
                 .usage("Parse a BAM file.")
                 .category(Category::Experimental),
@@ -48,6 +74,8 @@ impl Plugin for Bio {
         match name {
             "from fasta" => self.from_fasta(call, input),
             "from fa" => self.from_fasta(call, input),
+            "from fastq" => self.from_fastq(call, input),
+            "from fq" => self.from_fastq(call, input),
             "from bam" => self.from_bam(call, input),
             "from sam" => self.from_sam(call, input),
             "from bcf" => self.from_bcf(call, input),
