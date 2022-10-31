@@ -53,6 +53,9 @@ impl Plugin for Bio {
             Signature::build("from sam")
                 .usage("Parse a SAM file.")
                 .category(Category::Experimental),
+            Signature::build("from cram")
+                .usage("Parse a CRAM file into SAM output.")
+                .category(Category::Experimental),
             Signature::build("from bcf")
                 .usage("Parse a BCF file.")
                 .category(Category::Experimental),
@@ -78,6 +81,7 @@ impl Plugin for Bio {
             "from fq" => self.from_fastq(call, input),
             "from bam" => self.from_bam(call, input),
             "from sam" => self.from_sam(call, input),
+            "from cram" => self.from_cram(call, input),
             "from bcf" => self.from_bcf(call, input),
             "from vcf" => self.from_vcf(call, input),
             "from gff" => self.from_gff(call, input),

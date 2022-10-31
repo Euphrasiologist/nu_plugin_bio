@@ -6,7 +6,7 @@ use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
 /// Columns in a BAM/SAM file
-const BAM_COLUMNS: &'static [&str] = &[
+pub const BAM_COLUMNS: &'static [&str] = &[
     "read_name",
     "flags",
     "reference_sequence_id",
@@ -22,7 +22,7 @@ const BAM_COLUMNS: &'static [&str] = &[
 ];
 
 /// Parse a SAM record, and append to a vector
-fn add_record(call: &EvaluatedCall, r: Record, vec_vals: &mut Vec<Value>) {
+pub fn add_record(call: &EvaluatedCall, r: Record, vec_vals: &mut Vec<Value>) {
     let read_name = match r.read_name() {
         Some(r_n) => r_n.to_string(),
         None => "No read name.".into(),

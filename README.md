@@ -14,8 +14,10 @@ cargo build --release
 # register the plugin
 register nu_plugin_bio/target/release/nu_plugin_bio
 
-# parse a fasta!
+# see the current file formats currently supported below
+# now you can just use open, and the file extension will be auto-detected.
 open ./tests/test.fasta
+    | get id
 ```
 
 The backend is a <a href="https://github.com/zaeleus/noodles/">`noodles`</a> wrapper, an excellent, all-Rust bioinformatics I/O library.
@@ -26,7 +28,7 @@ Aim to support the following:
 - [x] BAM 1.6
 - [x] BCF 2.2
 - [ ] BED
-- [ ] CRAM 3.0
+- [x] CRAM 3.0
 - [x] FASTA
 - [x] FASTQ
 - [x] GFF3

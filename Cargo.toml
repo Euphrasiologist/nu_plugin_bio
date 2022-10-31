@@ -5,7 +5,7 @@ repository = "https://github.com/"
 edition = "2021"
 license = "MIT"
 name = "nu_plugin_bio"
-version = "0.70.0"
+version = "0.70.1"
 
 [dependencies]
 nu-plugin = { version = "0.70.0" }
@@ -15,6 +15,7 @@ noodles = { version = "0.29.0", features = [
     "fastq",
     "bam",
     "sam",
+    "cram",
     "bcf",
     "vcf",
     "gff",
