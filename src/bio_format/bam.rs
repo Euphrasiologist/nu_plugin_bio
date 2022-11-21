@@ -6,7 +6,7 @@ use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
 /// Columns in a BAM/SAM file
-pub const BAM_COLUMNS: &'static [&str] = &[
+pub const BAM_COLUMNS: &[&str] = &[
     "read_name",
     "flags",
     "reference_sequence_id",
@@ -158,9 +158,11 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>,
 /// Parse a SAM file into a nushell structure.
 pub fn from_sam_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>, LabeledError> {
     // match on file type
+    // TODO: remove this unwrap
     let stream = input.as_binary().unwrap();
 
     let mut reader = sam::Reader::new(stream);
+    // TODO: remove this unwrap
     let header = reader.read_header().unwrap().parse().unwrap();
 
     let mut value_records = Vec::new();

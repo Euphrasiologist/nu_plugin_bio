@@ -22,6 +22,7 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>
 
     let mut reader = cram::Reader::new(std::io::Cursor::new(stream));
     reader.read_file_definition().unwrap();
+    
     let header: sam::Header = match reader.read_file_header() {
         Ok(s) => match s.parse() {
             Ok(s_p) => s_p,

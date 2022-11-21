@@ -4,7 +4,7 @@ use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
 /// The GFF3 headers
-const GFF_COLUMNS: &'static [&str] = &[
+const GFF_COLUMNS: &[&str] = &[
     "ref_seq_name",
     "source",
     "ty",

@@ -46,6 +46,7 @@ pub fn from_fastq_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value
                 })
             }
         };
+        // TODO: remove this unwrap
         let id = std::str::from_utf8(r.name()).unwrap();
         let seq = r.sequence();
 
@@ -58,6 +59,7 @@ pub fn from_fastq_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value
 
         if description {
             let d_op = r.description();
+            // TODO: remove this unwrap
             let d = std::str::from_utf8(d_op).unwrap();
 
             vec_vals.push(Value::String {
@@ -68,6 +70,7 @@ pub fn from_fastq_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value
 
         if quality_scores {
             let q_op = r.quality_scores();
+            // TODO: remove this unwrap
             let q = std::str::from_utf8(q_op).unwrap();
 
             vec_vals.push(Value::String {
@@ -134,10 +137,7 @@ pub fn from_fasta_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value
 
         if description {
             let d_op = r.description();
-            let d = match d_op {
-                Some(e) => e,
-                None => "",
-            };
+            let d = d_op.unwrap_or("");
 
             vec_vals.push(Value::String {
                 val: d.to_string(),
