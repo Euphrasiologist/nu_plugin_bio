@@ -1,11 +1,12 @@
-use crate::bio_format::cram::from_cram_inner;
 use crate::bio_format::bam::{from_bam_inner, from_sam_inner};
 use crate::bio_format::bcf::{from_bcf_inner, from_vcf_inner};
+use crate::bio_format::cram::from_cram_inner;
 use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner};
 use crate::bio_format::gff::from_gff_inner;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
+/// We implement a bunch of parsers on the `Bio` struct.
 pub struct Bio;
 
 impl Bio {
@@ -54,19 +55,11 @@ impl Bio {
 
     /// Parse a BCF.
     pub fn from_bcf(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_bcf_inner(call, input)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        from_bcf_inner(call, input)
     }
-    /// Parse a BCF.
+    /// Parse a VCF.
     pub fn from_vcf(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_vcf_inner(call, input)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        from_vcf_inner(call, input)
     }
 
     /// Parse a GFF.
