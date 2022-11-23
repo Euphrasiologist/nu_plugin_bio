@@ -4,10 +4,10 @@ use noodles::sam;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
-use crate::bio_format::bam::{add_record, BAM_COLUMNS};
+use crate::bio_format::bam::{add_record, parse_header, BAM_COLUMNS};
 
 /// Parse a CRAM file into a nushell structure.
-pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>, LabeledError> {
+pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
     // match on file type
     let stream = match input {
         Value::Binary { val, span: _ } => val,
@@ -22,7 +22,7 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>
 
     let mut reader = cram::Reader::new(std::io::Cursor::new(stream));
     reader.read_file_definition().unwrap();
-    
+
     let header: sam::Header = match reader.read_file_header() {
         Ok(s) => match s.parse() {
             Ok(s_p) => s_p,
@@ -42,6 +42,8 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>
             })
         }
     };
+
+    let header_nuon = parse_header(call, &header);
 
     let mut value_records = Vec::new();
 
@@ -65,5 +67,15 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>
         }
     }
 
-    Ok(value_records)
+    Ok(Value::Record {
+        cols: vec!["header".into(), "body".into()],
+        vals: vec![
+            header_nuon,
+            Value::List {
+                vals: value_records,
+                span: call.head,
+            },
+        ],
+        span: call.head,
+    })
 }

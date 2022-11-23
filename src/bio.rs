@@ -38,11 +38,7 @@ impl Bio {
 
     /// Parse a CRAM file.
     pub fn from_cram(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_cram_inner(call, input)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        from_cram_inner(call, input)
     }
 
     /// Parse a BCF.

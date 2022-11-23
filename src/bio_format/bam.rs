@@ -31,7 +31,7 @@ pub const HEADER_COLUMNS: &[&str] = &[
 ];
 
 /// Parse a B/SAM header
-fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
+pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     // @HD in SAM.
     let header_op = h.header();
     // unwrap to the default header whatever that is?
