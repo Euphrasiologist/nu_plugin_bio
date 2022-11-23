@@ -29,19 +29,11 @@ impl Bio {
 
     /// These B(S)AM functions are quite slow at the moment.
     pub fn from_bam(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_bam_inner(call, input)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        from_bam_inner(call, input)
     }
     /// These B(S)AM functions are quite slow at the moment.
     pub fn from_sam(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_sam_inner(call, input)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        from_sam_inner(call, input)
     }
 
     /// Parse a CRAM file.
