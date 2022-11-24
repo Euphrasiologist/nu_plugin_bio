@@ -3,6 +3,7 @@ use crate::bio_format::bcf::{from_bcf_inner, from_vcf_inner};
 use crate::bio_format::cram::from_cram_inner;
 use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner};
 use crate::bio_format::gff::from_gff_inner;
+use crate::bio_format::Compression;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
@@ -11,16 +12,26 @@ pub struct Bio;
 
 impl Bio {
     /// A minimal working example of parsing a fasta into Nushell.
-    pub fn from_fasta(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_fasta_inner(call, input)?;
+    pub fn from_fasta(
+        &self,
+        call: &EvaluatedCall,
+        input: &Value,
+        gz: Compression,
+    ) -> Result<Value, LabeledError> {
+        let value_records = from_fasta_inner(call, input, gz)?;
         Ok(Value::List {
             vals: value_records,
             span: call.head,
         })
     }
     /// A minimal working example of parsing a fastq into Nushell.
-    pub fn from_fastq(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        let value_records = from_fastq_inner(call, input)?;
+    pub fn from_fastq(
+        &self,
+        call: &EvaluatedCall,
+        input: &Value,
+        gz: Compression,
+    ) -> Result<Value, LabeledError> {
+        let value_records = from_fastq_inner(call, input, gz)?;
         Ok(Value::List {
             vals: value_records,
             span: call.head,

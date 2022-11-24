@@ -19,4 +19,5 @@ noodles = { version = "0.30.0", features = [
     "bcf",
     "vcf",
     "gff",
+    "bgzf",
 ] }

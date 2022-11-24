@@ -1,3 +1,4 @@
+use crate::bio_format::Compression;
 use crate::Bio;
 use nu_plugin::{EvaluatedCall, LabeledError, Plugin};
 use nu_protocol::{Category, Signature, Value};
@@ -13,8 +14,24 @@ impl Plugin for Bio {
                     Some('d'),
                 )
                 .category(Category::Experimental),
+            Signature::build("from fasta.gz")
+                .usage("Parse a gzipped fasta file.")
+                .switch(
+                    "description",
+                    "parse the fasta header description",
+                    Some('d'),
+                )
+                .category(Category::Experimental),
             Signature::build("from fa")
                 .usage("Parse a fasta file.")
+                .switch(
+                    "description",
+                    "parse the fasta header description",
+                    Some('d'),
+                )
+                .category(Category::Experimental),
+            Signature::build("from fa.gz")
+                .usage("Parse a gzipped fasta file.")
                 .switch(
                     "description",
                     "parse the fasta header description",
@@ -34,8 +51,34 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
+            Signature::build("from fastq.gz")
+                .usage("Parse a gzipped fastq file.")
+                .switch(
+                    "description",
+                    "parse the fastq header description",
+                    Some('d'),
+                )
+                .switch(
+                    "quality-scores",
+                    "parse the fastq quality scores",
+                    Some('q'),
+                )
+                .category(Category::Experimental),
             Signature::build("from fq")
                 .usage("Parse a fastq file.")
+                .switch(
+                    "description",
+                    "parse the fastq header description",
+                    Some('d'),
+                )
+                .switch(
+                    "quality-scores",
+                    "parse the fastq quality scores",
+                    Some('q'),
+                )
+                .category(Category::Experimental),
+            Signature::build("from fq.gz")
+                .usage("Parse a gzipped fastq file.")
                 .switch(
                     "description",
                     "parse the fastq header description",
@@ -75,10 +118,14 @@ impl Plugin for Bio {
         input: &Value,
     ) -> Result<Value, LabeledError> {
         match name {
-            "from fasta" => self.from_fasta(call, input),
-            "from fa" => self.from_fasta(call, input),
-            "from fastq" => self.from_fastq(call, input),
-            "from fq" => self.from_fastq(call, input),
+            "from fasta" => self.from_fasta(call, input, Compression::Uncompressed),
+            "from fa" => self.from_fasta(call, input, Compression::Uncompressed),
+            "from fastq" => self.from_fastq(call, input, Compression::Uncompressed),
+            "from fq" => self.from_fastq(call, input, Compression::Uncompressed),
+            "from fasta.gz" => self.from_fasta(call, input, Compression::Gzipped),
+            "from fa.gz" => self.from_fasta(call, input, Compression::Gzipped),
+            "from fastq.gz" => self.from_fastq(call, input, Compression::Gzipped),
+            "from fq.gz" => self.from_fastq(call, input, Compression::Gzipped),
             "from bam" => self.from_bam(call, input),
             "from sam" => self.from_sam(call, input),
             "from cram" => self.from_cram(call, input),
