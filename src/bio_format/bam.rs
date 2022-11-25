@@ -480,7 +480,7 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
         }
     };
 
-    let mut reader = bam::Reader::new(std::io::Cursor::new(stream));
+    let mut reader = bam::Reader::new(stream.as_slice());
     let raw_header = match reader.read_header() {
         Ok(h) => h,
         Err(err) => {
@@ -503,6 +503,8 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                 .build(),
         )
     } else {
+        // this is required for reasons unclear to me...
+        let _ = reader.read_reference_sequences().unwrap();
         parse_header(call, &raw_header.parse().unwrap())
     };
 
