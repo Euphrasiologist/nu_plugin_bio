@@ -10,7 +10,8 @@ version = "0.70.2"
 [dependencies]
 nu-plugin = { version = "0.71.0" }
 nu-protocol = { version = "0.71.0", features = ["plugin"] }
-noodles = { version = "0.30.0", features = [
+# work from repo, as there are bug fixes in there which I raised, and are now fixed.
+noodles = { git = "https://github.com/zaeleus/noodles", features = [
     "fasta",
     "fastq",
     "bam",
@@ -19,5 +20,5 @@ noodles = { version = "0.30.0", features = [
     "bcf",
     "vcf",
     "gff",
-    "bgzf",
+    "bgzf"
 ] }

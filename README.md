@@ -1,6 +1,8 @@
 # Nushell bio
 
-A bioinformatics plugin for nushell. The aim initially is to create a bunch of parsers for all of the common bioinformatics file formats and take it from there!
+A bioinformatics plugin for nushell. 
+
+The aim initially is to create a bunch of parsers for all of the common bioinformatics file formats and take it from there.
 
 # Quick setup
 
@@ -47,9 +49,4 @@ Aim to support the following:
 - [x] SAM 1.6
 - [x] VCF 4.3
 
-Plus maybe some generic functions such as:
-- [ ] indexing
-- [ ] viewing
-- [ ] getting headers
-- [ ] counting lengths
-- [ ] changing between file formats
+And their BGZIP counterparts where appropriate (.vcf.gz, .fasta.gz, etc).
