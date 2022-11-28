@@ -98,13 +98,20 @@ pub fn from_fastq_inner(
     let description = call.has_flag("description");
     let quality_scores = call.has_flag("quality-scores");
 
+    let bytes = match input.as_binary() {
+        Ok(b) => b,
+        Err(e) => {
+            return Err(LabeledError {
+                label: "Value conversion to binary failed.".into(),
+                msg: format!("cause of failure: {}", e),
+                span: Some(call.head),
+            })
+        },
+    };
+
     let reader = match gz {
-        Compression::Uncompressed => {
-            let bytes = input.as_binary().unwrap();
-            FastqReader::Uncompressed(Box::new(fastq::Reader::new(bytes)))
-        }
+        Compression::Uncompressed => FastqReader::Uncompressed(Box::new(fastq::Reader::new(bytes))),
         Compression::Gzipped => {
-            let bytes = input.as_binary().unwrap();
             let gz = bgzf::Reader::new(bytes);
             FastqReader::Compressed(Box::new(fastq::Reader::new(BufReader::new(gz))))
         }
