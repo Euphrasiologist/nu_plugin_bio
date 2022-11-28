@@ -1,10 +1,25 @@
 /// The VCF format
 use noodles::{
     bcf::{self, header::StringMaps},
-    vcf,
+    bgzf, vcf,
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
+
+use crate::bio_format::Compression;
+use std::io::{BufRead, BufReader};
+
+/// Compression status of a VCF reader.
+enum VCFReader<'a> {
+    Uncompressed(Box<vcf::Reader<&'a [u8]>>),
+    Compressed(Box<vcf::Reader<BufReader<bgzf::Reader<&'a [u8]>>>>),
+}
+
+/// Compression status of a BCF reader.
+enum BCFReader<'a> {
+    Uncompressed(Box<bcf::Reader<bgzf::Reader<&'a [u8]>>>),
+    Compressed(Box<bcf::Reader<bgzf::Reader<bgzf::Reader<&'a [u8]>>>>),
+}
 
 /// VCF column headers
 const VCF_COLUMNS: &[&str] = &[
@@ -300,53 +315,62 @@ fn add_record(call: &EvaluatedCall, r: vcf::Record, vec_vals: &mut Vec<Value>) {
     vec_vals.extend_from_slice(&values_to_extend);
 }
 
-/// Parse a fasta file into a nushell structure.
-pub fn from_bcf_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-    // match on file type
-    let stream = match input {
-        Value::Binary { val, span: _ } => val,
-        other => {
-            return Err(LabeledError {
-                label: "Input should be binary.".into(),
-                msg: format!("requires binary input, got {}", other.get_type()),
-                span: Some(call.head),
-            })
-        }
-    };
+/// Read a BCF header and return the header, stringmaps, and also the header in nuon format.
+fn read_bcf_header(
+    reader: &mut BCFReader,
+    call: &EvaluatedCall,
+) -> Result<(vcf::Header, StringMaps, Value), LabeledError> {
+    // avoid repetitive code
+    fn gzip_agnostic_reader<R: BufRead>(
+        r: &mut bcf::Reader<R>,
+        call: &EvaluatedCall,
+    ) -> Result<(vcf::Header, StringMaps, Value), LabeledError> {
+        match r.read_file_format() {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(LabeledError {
+                    label: "Could not read file format".into(),
+                    msg: format!("file format unreadable due to: {}", e),
+                    span: Some(call.head),
+                })
+            }
+        };
 
-    let mut reader = bcf::Reader::new(std::io::Cursor::new(stream));
+        // TODO: remove this unwrap
+        let raw_header = match r.read_header() {
+            Ok(e) => e,
+            Err(e) => {
+                return Err(LabeledError {
+                    label: "Could not read header.".into(),
+                    msg: format!("header unreadable due to {}", e),
+                    span: Some(call.head),
+                })
+            }
+        };
 
-    match reader.read_file_format() {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(LabeledError {
-                label: "Could not read file format".into(),
-                msg: format!("file format unreadable due to: {}", e),
-                span: Some(call.head),
-            })
-        }
-    };
+        // TODO: remove this unwrap
+        let header: vcf::Header = raw_header.parse().unwrap();
+        let header_nuon = parse_header(call, &header);
+        // TODO: remove this unwrap
+        let string_maps: StringMaps = raw_header.parse().unwrap();
 
-    // TODO: remove this unwrap
-    let raw_header = match reader.read_header() {
-        Ok(e) => e,
-        Err(e) => {
-            return Err(LabeledError {
-                label: "Could not read header.".into(),
-                msg: format!("header unreadable due to {}", e),
-                span: Some(call.head),
-            })
-        }
-    };
+        Ok((header, string_maps, header_nuon))
+    }
 
-    // TODO: remove this unwrap
-    let header: vcf::Header = raw_header.parse().unwrap();
-    let header_nuon = parse_header(call, &header);
-    // TODO: remove this unwrap
-    let string_maps: StringMaps = raw_header.parse().unwrap();
+    match reader {
+        BCFReader::Uncompressed(uc) => gzip_agnostic_reader(uc, call),
+        BCFReader::Compressed(c) => gzip_agnostic_reader(c, call),
+    }
+}
 
-    let mut value_records = Vec::new();
-
+/// Generic function for optional compression to iterate over the BCF records.
+fn iterate_bcf_records<R: BufRead>(
+    mut reader: bcf::Reader<R>,
+    header: vcf::Header,
+    string_maps: StringMaps,
+    call: &EvaluatedCall,
+    value_records: &mut Vec<Value>,
+) -> Result<(), LabeledError> {
     for record in reader.records() {
         let r = match record {
             Ok(rec) => rec,
@@ -370,6 +394,53 @@ pub fn from_bcf_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
             vals: vec_vals,
             span: call.head,
         })
+    }
+
+    Ok(())
+}
+
+/// Parse a fasta file into a nushell structure.
+pub fn from_bcf_inner(
+    call: &EvaluatedCall,
+    input: &Value,
+    gz: Compression,
+) -> Result<Value, LabeledError> {
+    // match on file type
+    let stream = match input {
+        Value::Binary { val, span: _ } => val,
+        other => {
+            return Err(LabeledError {
+                label: "Input should be binary.".into(),
+                msg: format!("requires binary input, got {}", other.get_type()),
+                span: Some(call.head),
+            })
+        }
+    };
+
+    // let mut reader = bcf::Reader::new(stream.as_slice());
+
+    let mut reader = match gz {
+        Compression::Uncompressed => {
+            BCFReader::Uncompressed(Box::new(bcf::Reader::new(stream.as_slice())))
+        }
+        Compression::Gzipped => {
+            let gz = bgzf::Reader::new(stream.as_slice());
+            BCFReader::Compressed(Box::new(bcf::Reader::new(gz)))
+        }
+    };
+
+    let (header, string_maps, header_nuon) = read_bcf_header(&mut reader, call).unwrap();
+
+    let mut value_records = Vec::new();
+
+    // now match on compression
+    match reader {
+        BCFReader::Uncompressed(uc) => {
+            iterate_bcf_records(*uc, header, string_maps, call, &mut value_records).unwrap();
+        }
+        BCFReader::Compressed(c) => {
+            iterate_bcf_records(*c, header, string_maps, call, &mut value_records).unwrap();
+        }
     }
 
     Ok(Value::Record {

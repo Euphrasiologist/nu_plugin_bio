@@ -102,6 +102,9 @@ impl Plugin for Bio {
             Signature::build("from bcf")
                 .usage("Parse a BCF file.")
                 .category(Category::Experimental),
+            Signature::build("from bcf.gz")
+                .usage("Parse a gzipped BCF file.")
+                .category(Category::Experimental),
             Signature::build("from vcf")
                 .usage("Parse a VCF file.")
                 .category(Category::Experimental),
@@ -129,7 +132,8 @@ impl Plugin for Bio {
             "from bam" => self.from_bam(call, input),
             "from sam" => self.from_sam(call, input),
             "from cram" => self.from_cram(call, input),
-            "from bcf" => self.from_bcf(call, input),
+            "from bcf" => self.from_bcf(call, input, Compression::Uncompressed),
+            "from bcf.gz" => self.from_bcf(call, input, Compression::Gzipped),
             "from vcf" => self.from_vcf(call, input),
             "from gff" => self.from_gff(call, input),
             _ => Err(LabeledError {

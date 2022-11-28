@@ -53,8 +53,13 @@ impl Bio {
     }
 
     /// Parse a BCF.
-    pub fn from_bcf(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        from_bcf_inner(call, input)
+    pub fn from_bcf(
+        &self,
+        call: &EvaluatedCall,
+        input: &Value,
+        gz: Compression,
+    ) -> Result<Value, LabeledError> {
+        from_bcf_inner(call, input, gz)
     }
     /// Parse a VCF.
     pub fn from_vcf(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
