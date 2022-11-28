@@ -6,6 +6,8 @@ use nu_protocol::Value;
 
 use crate::bio_format::bam::{add_record, parse_header, BAM_COLUMNS};
 
+// TODO: also allow the reference to be passed, so we can view the alignment sequences?
+
 /// Parse a CRAM file into a nushell structure.
 pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
     // match on file type
@@ -20,8 +22,18 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Lab
         }
     };
 
-    let mut reader = cram::Reader::new(std::io::Cursor::new(stream));
-    reader.read_file_definition().unwrap();
+    let mut reader = cram::Reader::new(stream.as_slice());
+
+    match reader.read_file_definition() {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(LabeledError {
+                label: "Could not read CRAM file definition.".into(),
+                msg: format!("cause of failure: {}", e),
+                span: Some(call.head),
+            })
+        }
+    };
 
     let header: sam::Header = match reader.read_file_header() {
         Ok(s) => match s.parse() {
