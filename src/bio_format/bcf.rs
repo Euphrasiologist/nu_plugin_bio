@@ -336,7 +336,6 @@ fn read_bcf_header(
             }
         };
 
-        // TODO: remove this unwrap
         let raw_header = match r.read_header() {
             Ok(e) => e,
             Err(e) => {
@@ -383,8 +382,16 @@ fn iterate_bcf_records<R: BufRead>(
             }
         };
 
-        // TODO: remove this unwrap
-        let v_r = r.try_into_vcf_record(&header, &string_maps).unwrap();
+        let v_r = match r.try_into_vcf_record(&header, &string_maps) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(LabeledError {
+                    label: "Failed converting BCF record to VCF record.".into(),
+                    msg: format!("cause of failure: {}", e),
+                    span: Some(call.head),
+                })
+            }
+        };
 
         let mut vec_vals = Vec::new();
         add_record(call, v_r, &mut vec_vals);
@@ -416,8 +423,6 @@ pub fn from_bcf_inner(
             })
         }
     };
-
-    // let mut reader = bcf::Reader::new(stream.as_slice());
 
     let mut reader = match gz {
         Compression::Uncompressed => {
@@ -456,24 +461,51 @@ pub fn from_bcf_inner(
     })
 }
 
-/// Parse a fasta file into a nushell structure.
-pub fn from_vcf_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-    // match on file type
-    // TODO: remove this unwrap
-    let stream = input.as_binary().unwrap();
+/// Read a VCF header and return the header, stringmaps, and also the header in nuon format.
+fn read_vcf_header(
+    reader: &mut VCFReader,
+    call: &EvaluatedCall,
+) -> Result<(vcf::Header, Value), LabeledError> {
+    // avoid repetitive code
+    fn gzip_agnostic_reader<R: BufRead>(
+        r: &mut vcf::Reader<R>,
+        call: &EvaluatedCall,
+    ) -> Result<(vcf::Header, Value), LabeledError> {
+        // get the raw header
+        let raw_header = match r.read_header() {
+            Ok(rh) => rh,
+            Err(e) => {
+                return Err(LabeledError {
+                    label: "Failed to read raw VCF header.".into(),
+                    msg: format!("cause of failure: {}", e),
+                    span: Some(call.head),
+                })
+            }
+        };
 
-    let mut reader = vcf::Reader::new(stream);
-    // TODO: remove this unwrap
-    let raw_header = reader.read_header().unwrap();
+        let header: vcf::Header = match raw_header.parse() {
+            Ok(h) => h,
+            // is this okay? we could do some nu_plugin_bio/noodles specific thing here.
+            Err(_) => vcf::Header::default(),
+        };
+        let header_nuon = parse_header(call, &header);
 
-    let header: vcf::Header = match raw_header.parse() {
-        Ok(h) => h,
-        Err(_) => vcf::Header::default(),
-    };
-    let header_nuon = parse_header(call, &header);
+        Ok((header, header_nuon))
+    }
 
-    let mut value_records = Vec::new();
+    match reader {
+        VCFReader::Uncompressed(uc) => gzip_agnostic_reader(uc, call),
+        VCFReader::Compressed(c) => gzip_agnostic_reader(c, call),
+    }
+}
 
+/// Generic function for optional compression to iterate over the VCF records.
+fn iterate_vcf_records<R: BufRead>(
+    mut reader: vcf::Reader<R>,
+    header: vcf::Header,
+    call: &EvaluatedCall,
+    value_records: &mut Vec<Value>,
+) -> Result<(), LabeledError> {
     for record in reader.records(&header) {
         let r = match record {
             Ok(rec) => rec,
@@ -494,6 +526,52 @@ pub fn from_vcf_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
             vals: vec_vals,
             span: call.head,
         })
+    }
+
+    Ok(())
+}
+
+/// Parse a fasta file into a nushell structure.
+pub fn from_vcf_inner(
+    call: &EvaluatedCall,
+    input: &Value,
+    gz: Compression,
+) -> Result<Value, LabeledError> {
+    // match on file type
+    let stream = match input.as_binary() {
+        Ok(s) => s,
+        Err(e) => {
+            return Err(LabeledError {
+                label: "Could not stream input as binary.".into(),
+                msg: format!("cause of failure: {}", e),
+                span: Some(call.head),
+            })
+        }
+    };
+
+    let mut reader = match gz {
+        Compression::Uncompressed => VCFReader::Uncompressed(Box::new(vcf::Reader::new(stream))),
+        Compression::Gzipped => {
+            let gz = bgzf::Reader::new(stream);
+            VCFReader::Compressed(Box::new(vcf::Reader::new(BufReader::new(gz))))
+        }
+    };
+
+    let (header, header_nuon) = match read_vcf_header(&mut reader, call) {
+        Ok(h) => h,
+        Err(e) => return Err(e),
+    };
+
+    let mut value_records = Vec::new();
+
+    // now match on compression
+    match reader {
+        VCFReader::Uncompressed(uc) => {
+            iterate_vcf_records(*uc, header, call, &mut value_records).unwrap();
+        }
+        VCFReader::Compressed(c) => {
+            iterate_vcf_records(*c, header, call, &mut value_records).unwrap();
+        }
     }
 
     Ok(Value::Record {

@@ -108,6 +108,9 @@ impl Plugin for Bio {
             Signature::build("from vcf")
                 .usage("Parse a VCF file.")
                 .category(Category::Experimental),
+            Signature::build("from vcf.gz")
+                .usage("Parse a gzipped VCF file.")
+                .category(Category::Experimental),
             Signature::build("from gff")
                 .usage("Parse a GFF file.")
                 .category(Category::Experimental),
@@ -134,7 +137,8 @@ impl Plugin for Bio {
             "from cram" => self.from_cram(call, input),
             "from bcf" => self.from_bcf(call, input, Compression::Uncompressed),
             "from bcf.gz" => self.from_bcf(call, input, Compression::Gzipped),
-            "from vcf" => self.from_vcf(call, input),
+            "from vcf" => self.from_vcf(call, input, Compression::Uncompressed),
+            "from vcf.gz" => self.from_vcf(call, input, Compression::Gzipped),
             "from gff" => self.from_gff(call, input),
             _ => Err(LabeledError {
                 label: "Plugin call with wrong name signature".into(),
