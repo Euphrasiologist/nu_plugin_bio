@@ -114,6 +114,9 @@ impl Plugin for Bio {
             Signature::build("from gff")
                 .usage("Parse a GFF file.")
                 .category(Category::Experimental),
+            Signature::build("from gfa")
+                .usage("Parse a GFA file.")
+                .category(Category::Experimental),
         ]
     }
 
@@ -140,6 +143,7 @@ impl Plugin for Bio {
             "from vcf" => self.from_vcf(call, input, Compression::Uncompressed),
             "from vcf.gz" => self.from_vcf(call, input, Compression::Gzipped),
             "from gff" => self.from_gff(call, input),
+            "from gfa" => self.from_gfa(call, input),
             _ => Err(LabeledError {
                 label: "Plugin call with wrong name signature".into(),
                 msg: "the signature used to call the plugin does not match any name in the plugin signature vector".into(),

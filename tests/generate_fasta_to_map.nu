@@ -34,7 +34,7 @@ let genome_length = ($genome
 # sequences we will split the random genome subsequences on
 let splitters = ["AACCTAG", "TTCGACT", "TTCGACT", "AACCAAG"]
 # DNA bases to join the split sequences with.
-let bases = ["A", "T", "G", "C"]
+let bases = ["A", "T", "G", "CAATTAA"]
 
 print -e "Generating 100 random subsequences."
 
@@ -62,6 +62,10 @@ print -e ""
 print -e "Using minimap2 to map reads to reference."
 # map synthesised subreads to genome
 ~/minimap2/minimap2 -a ./drAilAlti1.fa ./fasta_to_map.fa.gz | save map.sam
+print -e ""
+print -e "Using MBG to generate a GFA assembly."
+~/MBG/bin/MBG -i ./fasta_to_map.fa -o map.gfa -k 501
+
 print -e ""
 print -e "Converting output SAM to BAM."
 # convert sam to bam

@@ -6,6 +6,8 @@ pub mod bcf;
 pub mod cram;
 /// Fasta parsing facility.
 pub mod fasta;
+/// GFA parsing utility
+pub mod gfa;
 /// GFF(3) parsing facility
 pub mod gff;
 

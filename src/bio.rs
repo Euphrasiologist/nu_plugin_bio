@@ -3,6 +3,7 @@ use crate::bio_format::bcf::{from_bcf_inner, from_vcf_inner};
 use crate::bio_format::cram::from_cram_inner;
 use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner};
 use crate::bio_format::gff::from_gff_inner;
+use crate::bio_format::gfa::from_gfa_inner;
 use crate::bio_format::Compression;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
@@ -73,5 +74,10 @@ impl Bio {
             vals: value_records,
             span: call.head,
         })
+    }
+
+    /// Parse a GFA.
+    pub fn from_gfa(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
+        from_gfa_inner(call, input)
     }
 }
