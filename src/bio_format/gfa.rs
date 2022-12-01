@@ -64,8 +64,14 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
             string_from_utf8(z, call, "Z value malformed")?,
             "".into(),
         ),
-        // what's J? should probably error out here.
-        OptFieldVal::J(_j) => todo!(),
+        // J is JSON
+        // just handle this as a string
+        OptFieldVal::J(j) => tag_type_value(
+            tag,
+            String::from("J"),
+            string_from_utf8(j, call, "J JSON value malformed")?,
+            "".into(),
+        ),
         // H (hexadecimal array)
         OptFieldVal::H(h) => tag_type_value(
             tag,
@@ -114,6 +120,8 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
     let mut header_nuon = Vec::new();
     let mut segments_nuon = Vec::new();
     let mut links_nuon = Vec::new();
+    let mut containments_nuon = Vec::new();
+    let mut paths_nuon = Vec::new();
 
     for line in lines {
         let line = match line {
@@ -243,9 +251,118 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                             span: call.head,
                         })
                     }
-                    // TODO:
-                    Containment(_c) => todo!(),
-                    Path(_p) => todo!(),
+                    Containment(c) => {
+                        let containment_name =
+                            string_from_utf8(c.contained_name, call, "containment name malformed");
+                        let containment_orient = c.contained_orient.to_string();
+                        let container_name =
+                            string_from_utf8(c.container_name, call, "container name malformed");
+                        let container_orient = c.container_orient.to_string();
+                        let overlap =
+                            string_from_utf8(c.overlap, call, "overlap (CIGAR) malformed");
+                        let position = c.pos;
+                        let opts: Result<Vec<Value>, _> = c
+                            .optional
+                            .iter()
+                            .map(|e| parse_optfieldval(e.clone(), call))
+                            .collect();
+
+                        containments_nuon.push(Value::Record {
+                            cols: vec![
+                                "containment_name".into(),
+                                "containment_orient".into(),
+                                "container_name".into(),
+                                "container_orient".into(),
+                                "overlap".into(),
+                                "position".into(),
+                                "optional_fields".into(),
+                            ],
+                            vals: vec![
+                                Value::String {
+                                    val: containment_name?,
+                                    span: call.head,
+                                },
+                                Value::String {
+                                    val: containment_orient,
+                                    span: call.head,
+                                },
+                                Value::String {
+                                    val: container_name?,
+                                    span: call.head,
+                                },
+                                Value::String {
+                                    val: container_orient,
+                                    span: call.head,
+                                },
+                                Value::String {
+                                    val: overlap?,
+                                    span: call.head,
+                                },
+                                Value::Int {
+                                    val: position as i64,
+                                    span: call.head,
+                                },
+                                Value::List {
+                                    vals: opts?,
+                                    span: call.head,
+                                },
+                            ],
+                            span: call.head,
+                        })
+                    }
+                    Path(p) => {
+                        let path_name = string_from_utf8(p.path_name, call, "malformed path name");
+                        let segment_names = string_from_utf8(
+                            p.segment_names,
+                            call,
+                            "segment names in path malformed",
+                        )?;
+                        let overlaps: Vec<Value> = p
+                            .overlaps
+                            .iter()
+                            .map(|e| Value::String {
+                                val: e
+                                    .as_ref()
+                                    .map(|f| f.to_string())
+                                    .unwrap_or_else(|| "".into()),
+                                span: call.head,
+                            })
+                            .collect();
+                        let opts: Result<Vec<Value>, LabeledError> = p
+                            .optional
+                            .iter()
+                            .map(|e| parse_optfieldval(e.clone(), call))
+                            .collect();
+
+                        paths_nuon.push(Value::Record {
+                            cols: vec![
+                                "path_name".into(),
+                                "segment_names".into(),
+                                "overlaps".into(),
+                                "optional_fields".into(),
+                            ],
+                            vals: vec![
+                                Value::String {
+                                    val: path_name?,
+                                    span: call.head,
+                                },
+                                // probably should be a list...
+                                Value::String {
+                                    val: segment_names,
+                                    span: call.head,
+                                },
+                                Value::List {
+                                    vals: overlaps,
+                                    span: call.head,
+                                },
+                                Value::List {
+                                    vals: opts?,
+                                    span: call.head,
+                                },
+                            ],
+                            span: call.head,
+                        })
+                    }
                 }
             }
             // I don't have access to the .tolerance field...
