@@ -11,17 +11,19 @@ let samtools_version = $"(samtools --version | lines | first | str replace 'samt
 let bgzip_version = $"(bgzip --version | lines | first | str replace 'bgzip \(htslib\) ' '')"
 let minimap2_version = $"(~/minimap2/minimap2 --version)"
 let bcftools_version = $"(bcftools --version | lines | first | str replace 'bcftools ' '')"
+let mbg_version = $"(do -i { ~/MBG/bin/MBG --version } | complete | get stderr | lines | get 1)"
 
 print -e $"Software versions:\nSAMTOOLS:\t($samtools_version)"
 print -e $"BGZIP\t($bgzip_version)"
 print -e --no-newline $"MINIMAP2\t($minimap2_version)"
-print -e $"BCFTOOLS\t($bcftools_version)"
+print -e --no-newline $"\nBCFTOOLS\t($bcftools_version)"
+print -e $"\nMBG\t($mbg_version)"
 print -e ""
 
 # delete old files
 rm -f fasta_to_map.fa*
 rm -f drAilAlti1.fa.fai
-rm -f map.*
+rm -f map*
 
 # the genome
 # we're using the fasta parser from nu_plugin_bio here below.
@@ -57,19 +59,19 @@ for s in 1..100 {
 
 print -e "BGZipping the simulated fasta file."
 # make the zipped fasta to test
-bgzip -c ./fasta_to_map.fa | save ./fasta_to_map.fa.gz
+bgzip -c ./fasta_to_map.fa out> ./fasta_to_map.fa.gz
 print -e ""
 print -e "Using minimap2 to map reads to reference."
-# map synthesised subreads to genome
-~/minimap2/minimap2 -a ./drAilAlti1.fa ./fasta_to_map.fa.gz | save map.sam
+# # map synthesised subreads to genome
+~/minimap2/minimap2 -a ./drAilAlti1.fa ./fasta_to_map.fa.gz -o map.sam
 print -e ""
-print -e "Using MBG to generate a GFA assembly."
+print -e "Using MBG to generate a GFA fake MBG assembly."
 ~/MBG/bin/MBG -i ./fasta_to_map.fa -o map.gfa -k 501
 
 print -e ""
 print -e "Converting output SAM to BAM."
 # convert sam to bam
-samtools view -T ./drAilAlti1.fa -bS map.sam | save map.bam
+samtools view -T ./drAilAlti1.fa -bS map.sam -o map.bam
 print -e "Converting BAM to CRAM."
 # convert bam to cram
 samtools view -T ./drAilAlti1.fa -C -o map.cram map.bam
@@ -80,7 +82,9 @@ samtools index map_sorted.bam
 print -e ""
 print -e "Calling variants."
 # call variants
-bcftools mpileup -Ou -f ./drAilAlti1.fa map_sorted.bam | bcftools call -vmO z -o map.vcf.gz
+bcftools mpileup -f ./drAilAlti1.fa map_sorted.bam -Ob -o temp.bcf 
+bcftools call -vmO z -o map.vcf.gz temp.bcf
+rm temp.bcf
 # and also gzip this
 bcftools view map.vcf.gz -o map.bcf
-bgzip -c map.bcf | save map.bcf.gz
+bgzip -k map.bcf
