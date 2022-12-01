@@ -22,7 +22,7 @@ fn string_from_utf8(
         Ok(s) => Ok(s),
         Err(e) => Err(LabeledError {
             label: "Could convert bytes to string.".into(),
-            msg: format!("in {} reason: {}", context, e),
+            msg: format!("{}: {}", context, e),
             span: Some(call.head),
         }),
     }
