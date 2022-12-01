@@ -48,5 +48,8 @@ Aim to support the following:
 - [ ] GTF 2.2
 - [x] SAM 1.6
 - [x] VCF 4.3
+- [x] GFA 1.0
 
 And their BGZIP counterparts where appropriate (.vcf.gz, .fasta.gz, etc).
+
+Note that performance will not be optimal with the current state of `nu_plugin`, as we cannot access the engine state of nushell, and therefore need to load entire data structures into memory. Testing still needs to be done on large files.
