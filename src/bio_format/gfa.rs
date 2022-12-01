@@ -10,28 +10,47 @@ use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 use std::io::BufReader;
 
+/// We do a lot of string conversion in this module,
+/// so make a string from utf8 function with nice error
+/// handling.
+fn string_from_utf8(
+    inner: Vec<u8>,
+    call: &EvaluatedCall,
+    context: &str,
+) -> Result<String, LabeledError> {
+    match String::from_utf8(inner) {
+        Ok(s) => Ok(s),
+        Err(e) => Err(LabeledError {
+            label: "Could convert bytes to string.".into(),
+            msg: format!("in {} reason: {}", context, e),
+            span: Some(call.head),
+        }),
+    }
+}
+
 /// Parse a string representation of the option fields, until
 /// we can come up with some better parsing.
-fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Value {
+fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value, LabeledError> {
     let tag = opt_field.tag;
     let val = opt_field.value;
 
     // TAG:TYPE:VALUE
-    let tag_type_value = |tag: [u8; 2], typ: String, value: String, b: String| -> Value {
-        let tag_string = String::from_utf8(tag.to_vec()).unwrap();
+    let tag_type_value =
+        |tag: [u8; 2], typ: String, value: String, b: String| -> Result<Value, LabeledError> {
+            let tag_string = string_from_utf8(tag.to_vec(), call, "tag is malformed")?;
 
-        Value::String {
-            val: format!("{tag_string}:{typ}:{b}{value}"),
-            span: call.head,
-        }
-    };
+            Ok(Value::String {
+                val: format!("{tag_string}:{typ}:{b}{value}"),
+                span: call.head,
+            })
+        };
 
     match val {
         // A (character)
         OptFieldVal::A(a) => tag_type_value(
             tag,
             String::from("A"),
-            String::from_utf8(vec![a]).unwrap(),
+            string_from_utf8(vec![a], call, "'A' value malformed")?,
             "".into(),
         ),
         // i (integer)
@@ -42,7 +61,7 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Value {
         OptFieldVal::Z(z) => tag_type_value(
             tag,
             String::from("Z"),
-            String::from_utf8(z).unwrap(),
+            string_from_utf8(z, call, "Z value malformed")?,
             "".into(),
         ),
         // what's J? should probably error out here.
@@ -122,7 +141,7 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                             .and_then(|e| String::from_utf8(e).ok())
                             .unwrap_or_else(|| "No version specified.".into());
 
-                        let opts: Vec<Value> = h
+                        let opts: Result<Vec<Value>, _> = h
                             .optional
                             .iter()
                             .map(|e| parse_optfieldval(e.clone(), call))
@@ -136,7 +155,7 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                                     span: call.head,
                                 },
                                 Value::List {
-                                    vals: opts,
+                                    vals: opts?,
                                     span: call.head,
                                 },
                             ],
@@ -145,20 +164,20 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                     }
                     Segment(s) => {
                         // parse as string
-                        let name = String::from_utf8(s.name).unwrap();
-                        let opts: Vec<Value> = s
+                        let name = string_from_utf8(s.name, call, "segment name malformed");
+                        let opts: Result<Vec<Value>, _> = s
                             .optional
                             .iter()
                             .map(|e| parse_optfieldval(e.clone(), call))
                             .collect();
                         // parse as string
-                        let seq = String::from_utf8(s.sequence).unwrap();
+                        let seq = string_from_utf8(s.sequence, call, "segment sequence malformed")?;
 
                         segments_nuon.push(Value::Record {
                             cols: vec!["name".into(), "sequence".into(), "optional_fields".into()],
                             vals: vec![
                                 Value::String {
-                                    val: name,
+                                    val: name?,
                                     span: call.head,
                                 },
                                 Value::String {
@@ -166,7 +185,7 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                                     span: call.head,
                                 },
                                 Value::List {
-                                    vals: opts,
+                                    vals: opts?,
                                     span: call.head,
                                 },
                             ],
@@ -176,10 +195,11 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                     Link(l) => {
                         let fo = l.from_orient.to_string();
                         let to = l.to_orient.to_string();
-                        let fs = String::from_utf8(l.from_segment).unwrap();
-                        let ts = String::from_utf8(l.to_segment).unwrap();
-                        let overlap = String::from_utf8(l.overlap).unwrap();
-                        let opts: Vec<Value> = l
+                        let fs = string_from_utf8(l.from_segment, call, "from segment malformed");
+                        let ts = string_from_utf8(l.to_segment, call, "to segment malformed");
+                        let overlap =
+                            string_from_utf8(l.overlap, call, "overlap (CIGAR) malformed");
+                        let opts: Result<Vec<Value>, _> = l
                             .optional
                             .iter()
                             .map(|e| parse_optfieldval(e.clone(), call))
@@ -204,19 +224,19 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                                     span: call.head,
                                 },
                                 Value::String {
-                                    val: fs,
+                                    val: fs?,
                                     span: call.head,
                                 },
                                 Value::String {
-                                    val: ts,
+                                    val: ts?,
                                     span: call.head,
                                 },
                                 Value::String {
-                                    val: overlap,
+                                    val: overlap?,
                                     span: call.head,
                                 },
                                 Value::List {
-                                    vals: opts,
+                                    vals: opts?,
                                     span: call.head,
                                 },
                             ],
@@ -243,7 +263,13 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
     Ok(Value::Record {
         cols: vec!["header".into(), "segments".into(), "links".into()],
         vals: vec![
-            header_nuon.first().unwrap().clone(),
+            header_nuon
+                .first()
+                .unwrap_or(&Value::String {
+                    val: "No header.".into(),
+                    span: call.head,
+                })
+                .clone(),
             Value::List {
                 vals: segments_nuon,
                 span: call.head,
