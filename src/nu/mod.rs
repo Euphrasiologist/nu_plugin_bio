@@ -7,7 +7,7 @@ impl Plugin for Bio {
     fn signature(&self) -> Vec<Signature> {
         vec![
             Signature::build("from fasta")
-                .usage("Parse a fasta file.")
+                .usage("Parse a fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fasta header description",
@@ -15,7 +15,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fasta.gz")
-                .usage("Parse a gzipped fasta file.")
+                .usage("Parse a gzipped fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fasta header description",
@@ -23,7 +23,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fa")
-                .usage("Parse a fasta file.")
+                .usage("Parse a fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fasta header description",
@@ -31,7 +31,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fa.gz")
-                .usage("Parse a gzipped fasta file.")
+                .usage("Parse a gzipped fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fasta header description",
@@ -39,7 +39,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fastq")
-                .usage("Parse a fastq file.")
+                .usage("Parse a fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fastq header description",
@@ -52,7 +52,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fastq.gz")
-                .usage("Parse a gzipped fastq file.")
+                .usage("Parse a gzipped fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fastq header description",
@@ -65,7 +65,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fq")
-                .usage("Parse a fastq file.")
+                .usage("Parse a fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fastq header description",
@@ -78,7 +78,7 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from fq.gz")
-                .usage("Parse a gzipped fastq file.")
+                .usage("Parse a gzipped fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
                     "parse the fastq header description",
@@ -91,31 +91,34 @@ impl Plugin for Bio {
                 )
                 .category(Category::Experimental),
             Signature::build("from bam")
-                .usage("Parse a BAM file.")
+                .usage("Parse a BAM file.\nReturns a record containing the header and the body of the BAM file.")
                 .category(Category::Experimental),
             Signature::build("from sam")
-                .usage("Parse a SAM file.")
+                .usage("Parse a SAM file.\nReturns a record containing the header and the body of the SAM file.")
                 .category(Category::Experimental),
             Signature::build("from cram")
-                .usage("Parse a CRAM file into SAM output.")
+                .usage("Parse a CRAM file into SAM output.\nReturns a record containing the header and the body of the CRAM file.")
                 .category(Category::Experimental),
             Signature::build("from bcf")
-                .usage("Parse a BCF file.")
+                .usage("Parse a BCF file.\nReturns a record containing the header and the body of the BCF file.")
                 .category(Category::Experimental),
             Signature::build("from bcf.gz")
-                .usage("Parse a gzipped BCF file.")
+                .usage("Parse a gzipped BCF file.\nReturns a record containing the header and the body of the BCF file.")
                 .category(Category::Experimental),
             Signature::build("from vcf")
-                .usage("Parse a VCF file.")
+                .usage("Parse a VCF file.\nReturns a record containing the header and the body of the VCF file.")
                 .category(Category::Experimental),
             Signature::build("from vcf.gz")
-                .usage("Parse a gzipped VCF file.")
+                .usage("Parse a gzipped VCF file.\nReturns a record containing the header and the body of the VCF file.")
                 .category(Category::Experimental),
             Signature::build("from gff")
-                .usage("Parse a GFF file.")
+                .usage("Parse a GFF file.\nReturns a table.")
                 .category(Category::Experimental),
             Signature::build("from gfa")
-                .usage("Parse a GFA file.")
+                .usage("Parse a GFA file.\nReturns a record containing the header, segments, links, containments, and paths.")
+                .category(Category::Experimental),
+            Signature::build("from gfa.gz")
+                .usage("Parse a gzipped GFA file.\nReturns a record containing the header, segments, links, containments, and paths.")
                 .category(Category::Experimental),
         ]
     }
@@ -143,7 +146,8 @@ impl Plugin for Bio {
             "from vcf" => self.from_vcf(call, input, Compression::Uncompressed),
             "from vcf.gz" => self.from_vcf(call, input, Compression::Gzipped),
             "from gff" => self.from_gff(call, input),
-            "from gfa" => self.from_gfa(call, input),
+            "from gfa" => self.from_gfa(call, input, Compression::Uncompressed),
+            "from gfa.gz" => self.from_gfa(call, input, Compression::Gzipped),
             _ => Err(LabeledError {
                 label: "Plugin call with wrong name signature".into(),
                 msg: "the signature used to call the plugin does not match any name in the plugin signature vector".into(),

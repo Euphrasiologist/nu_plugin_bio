@@ -2,8 +2,8 @@ use crate::bio_format::bam::{from_bam_inner, from_sam_inner};
 use crate::bio_format::bcf::{from_bcf_inner, from_vcf_inner};
 use crate::bio_format::cram::from_cram_inner;
 use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner};
-use crate::bio_format::gff::from_gff_inner;
 use crate::bio_format::gfa::from_gfa_inner;
+use crate::bio_format::gff::from_gff_inner;
 use crate::bio_format::Compression;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
@@ -63,7 +63,12 @@ impl Bio {
         from_bcf_inner(call, input, gz)
     }
     /// Parse a VCF.
-    pub fn from_vcf(&self, call: &EvaluatedCall, input: &Value, gz: Compression) -> Result<Value, LabeledError> {
+    pub fn from_vcf(
+        &self,
+        call: &EvaluatedCall,
+        input: &Value,
+        gz: Compression,
+    ) -> Result<Value, LabeledError> {
         from_vcf_inner(call, input, gz)
     }
 
@@ -77,7 +82,12 @@ impl Bio {
     }
 
     /// Parse a GFA.
-    pub fn from_gfa(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-        from_gfa_inner(call, input)
+    pub fn from_gfa(
+        &self,
+        call: &EvaluatedCall,
+        input: &Value,
+        gz: Compression,
+    ) -> Result<Value, LabeledError> {
+        from_gfa_inner(call, input, gz)
     }
 }

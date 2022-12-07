@@ -8,7 +8,16 @@ use gfa::{
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
-use std::io::BufReader;
+use std::io::{BufRead, BufReader};
+
+use super::Compression;
+use noodles::bgzf;
+
+/// Compression status of a VCF reader.
+enum GFAReader<'a> {
+    Uncompressed(bstr::io::ByteLines<std::io::BufReader<&'a [u8]>>),
+    Compressed(bstr::io::ByteLines<bgzf::Reader<std::io::BufReader<&'a [u8]>>>),
+}
 
 /// We do a lot of string conversion in this module,
 /// so make a string from utf8 function with nice error
@@ -101,29 +110,19 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
     }
 }
 
-pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
-    let parser: GFAParser<Vec<u8>, Vec<OptField>> = GFAParser::new();
-
-    let bytes = match input.as_binary() {
-        Ok(b) => b,
-        Err(e) => {
-            return Err(LabeledError {
-                label: "Value conversion to binary failed.".into(),
-                msg: format!("cause of failure: {}", e),
-                span: Some(call.head),
-            })
-        }
-    };
-
-    let lines = BufReader::new(bytes).byte_lines();
-
-    let mut header_nuon = Vec::new();
-    let mut segments_nuon = Vec::new();
-    let mut links_nuon = Vec::new();
-    let mut containments_nuon = Vec::new();
-    let mut paths_nuon = Vec::new();
-
-    for line in lines {
+/// Convert GFA byte lines to nuon, given a compression status.
+#[allow(clippy::too_many_arguments)]
+fn lines_to_nuon<R: BufRead>(
+    gfa_reader: ByteLines<R>,
+    parser: GFAParser<Vec<u8>, Vec<OptField>>,
+    header_nuon: &mut Vec<Value>,
+    segments_nuon: &mut Vec<Value>,
+    links_nuon: &mut Vec<Value>,
+    containments_nuon: &mut Vec<Value>,
+    paths_nuon: &mut Vec<Value>,
+    call: &EvaluatedCall,
+) -> Result<(), LabeledError> {
+    for line in gfa_reader {
         let line = match line {
             Ok(l) => l,
             Err(e) => {
@@ -376,9 +375,71 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
             }
         };
     }
+    Ok(())
+}
+
+pub fn from_gfa_inner(
+    call: &EvaluatedCall,
+    input: &Value,
+    gz: Compression,
+) -> Result<Value, LabeledError> {
+    let parser: GFAParser<Vec<u8>, Vec<OptField>> = GFAParser::new();
+
+    let bytes = match input.as_binary() {
+        Ok(b) => b,
+        Err(e) => {
+            return Err(LabeledError {
+                label: "Value conversion to binary failed.".into(),
+                msg: format!("cause of failure: {}", e),
+                span: Some(call.head),
+            })
+        }
+    };
+
+    let lines = match gz {
+        Compression::Uncompressed => GFAReader::Uncompressed(BufReader::new(bytes).byte_lines()),
+        Compression::Gzipped => {
+            GFAReader::Compressed(bgzf::Reader::new(BufReader::new(bytes)).byte_lines())
+        }
+    };
+
+    let mut header_nuon = Vec::new();
+    let mut segments_nuon = Vec::new();
+    let mut links_nuon = Vec::new();
+    let mut containments_nuon = Vec::new();
+    let mut paths_nuon = Vec::new();
+
+    match lines {
+        GFAReader::Uncompressed(ur) => lines_to_nuon(
+            ur,
+            parser,
+            &mut header_nuon,
+            &mut segments_nuon,
+            &mut links_nuon,
+            &mut containments_nuon,
+            &mut paths_nuon,
+            call,
+        )?,
+        GFAReader::Compressed(cr) => lines_to_nuon(
+            cr,
+            parser,
+            &mut header_nuon,
+            &mut segments_nuon,
+            &mut links_nuon,
+            &mut containments_nuon,
+            &mut paths_nuon,
+            call,
+        )?,
+    };
 
     Ok(Value::Record {
-        cols: vec!["header".into(), "segments".into(), "links".into()],
+        cols: vec![
+            "header".into(),
+            "segments".into(),
+            "links".into(),
+            "containments".into(),
+            "paths".into(),
+        ],
         vals: vec![
             header_nuon
                 .first()
@@ -393,6 +454,14 @@ pub fn from_gfa_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
             },
             Value::List {
                 vals: links_nuon,
+                span: call.head,
+            },
+            Value::List {
+                vals: containments_nuon,
+                span: call.head,
+            },
+            Value::List {
+                vals: paths_nuon,
                 span: call.head,
             },
         ],
