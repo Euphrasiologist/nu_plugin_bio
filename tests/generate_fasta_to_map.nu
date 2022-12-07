@@ -67,6 +67,7 @@ print -e "Using minimap2 to map reads to reference."
 print -e ""
 print -e "Using MBG to generate a GFA fake MBG assembly."
 ~/MBG/bin/MBG -i ./fasta_to_map.fa -o map.gfa -k 501
+bgzip -k map.gfa
 
 print -e ""
 print -e "Converting output SAM to BAM."
