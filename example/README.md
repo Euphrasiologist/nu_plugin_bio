@@ -1,5 +1,7 @@
 # Using `nu_plugin_bio`
 
+The homepage README gives instructions on how to download `nu_plugin_bio`.
+
 ## The `tests` directory
 
 The tests data contains loads of files to test the parsing capabilities of `nu_plugin_bio`. For small to medium files, parsing should be quick, and then we can use all the commands we can use with `nushell`.
@@ -91,4 +93,8 @@ benchmark { let gff = (open genomic.gff) }
 
 Pretty long. And going through it to do anything is quite slow too at the moment.
 
-After a few minutes we get `2186877`.
+```nu
+$gff | where strand == '+' | length
+```
+
+After a few minutes we get `2186877`, the number of annotations on the positive strand.
