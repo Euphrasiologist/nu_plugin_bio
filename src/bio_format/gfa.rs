@@ -45,7 +45,7 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
 
     // TAG:TYPE:VALUE
     let tag_type_value =
-        |tag: [u8; 2], typ: String, value: String, b: String| -> Result<Value, LabeledError> {
+        |typ: String, value: String, b: String| -> Result<Value, LabeledError> {
             let tag_string = string_from_utf8(tag.to_vec(), call, "tag is malformed")?;
 
             Ok(Value::String {
@@ -57,18 +57,16 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
     match val {
         // A (character)
         OptFieldVal::A(a) => tag_type_value(
-            tag,
             String::from("A"),
             string_from_utf8(vec![a], call, "'A' value malformed")?,
             "".into(),
         ),
         // i (integer)
-        OptFieldVal::Int(i) => tag_type_value(tag, String::from("i"), i.to_string(), "".into()),
+        OptFieldVal::Int(i) => tag_type_value( String::from("i"), i.to_string(), "".into()),
         // f (real number)
-        OptFieldVal::Float(f) => tag_type_value(tag, String::from("f"), f.to_string(), "".into()),
+        OptFieldVal::Float(f) => tag_type_value(String::from("f"), f.to_string(), "".into()),
         // Z (string)
         OptFieldVal::Z(z) => tag_type_value(
-            tag,
             String::from("Z"),
             string_from_utf8(z, call, "Z value malformed")?,
             "".into(),
@@ -76,14 +74,12 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
         // J is JSON
         // just handle this as a string
         OptFieldVal::J(j) => tag_type_value(
-            tag,
             String::from("J"),
             string_from_utf8(j, call, "J JSON value malformed")?,
             "".into(),
         ),
         // H (hexadecimal array)
         OptFieldVal::H(h) => tag_type_value(
-            tag,
             String::from("Z"),
             h.iter()
                 .map(|e| format!("{:#05x}", e))
@@ -92,7 +88,6 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
         ),
         // B (general array) - here it's split
         OptFieldVal::BInt(bi) => tag_type_value(
-            tag,
             String::from("B"),
             bi.iter()
                 .map(|e| e.to_string())
@@ -100,7 +95,6 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
             "i:".into(),
         ),
         OptFieldVal::BFloat(bf) => tag_type_value(
-            tag,
             String::from("B"),
             bf.iter()
                 .map(|e| e.to_string())
