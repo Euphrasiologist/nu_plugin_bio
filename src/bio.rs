@@ -1,5 +1,6 @@
 use crate::bio_format::bam::{from_bam_inner, from_sam_inner};
 use crate::bio_format::bcf::{from_bcf_inner, from_vcf_inner};
+use crate::bio_format::bed::from_bed_inner;
 use crate::bio_format::cram::from_cram_inner;
 use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner};
 use crate::bio_format::gfa::from_gfa_inner;
@@ -89,5 +90,13 @@ impl Bio {
         gz: Compression,
     ) -> Result<Value, LabeledError> {
         from_gfa_inner(call, input, gz)
+    }
+
+    /// Parse a BED.
+    pub fn from_bed(&self, call: &EvaluatedCall, input: Value) -> Result<Value, LabeledError> {
+        from_bed_inner(call, input).map(|e| Value::List {
+            vals: e,
+            span: call.head,
+        })
     }
 }

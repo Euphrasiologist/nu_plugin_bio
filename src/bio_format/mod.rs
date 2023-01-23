@@ -10,6 +10,8 @@ pub mod fasta;
 pub mod gfa;
 /// GFF(3) parsing facility
 pub mod gff;
+/// BED parsing facility
+pub mod bed;
 
 /// Compression enum
 pub enum Compression {

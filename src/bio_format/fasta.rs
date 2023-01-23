@@ -233,7 +233,7 @@ pub fn from_fasta_inner(
     // parse description flag.
     let description = call.has_flag("description");
 
-    let bytes = input.as_binary().unwrap();
+    let bytes = input.as_binary()?;
 
     let reader = match gz {
         Compression::Uncompressed => FastaReader::Uncompressed(Box::new(fasta::Reader::new(bytes))),

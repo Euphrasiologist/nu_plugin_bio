@@ -120,6 +120,9 @@ impl Plugin for Bio {
             Signature::build("from gfa.gz")
                 .usage("Parse a gzipped GFA file.\nReturns a record containing the header, segments, links, containments, and paths.")
                 .category(Category::Experimental),
+            Signature::build("from bed")
+                .usage("Parse a BED file.")
+                .category(Category::Experimental)
         ]
     }
 
@@ -148,6 +151,7 @@ impl Plugin for Bio {
             "from gff" => self.from_gff(call, input),
             "from gfa" => self.from_gfa(call, input, Compression::Uncompressed),
             "from gfa.gz" => self.from_gfa(call, input, Compression::Gzipped),
+            "from bed" => self.from_bed(call, input.clone()),
             _ => Err(LabeledError {
                 label: "Plugin call with wrong name signature".into(),
                 msg: "the signature used to call the plugin does not match any name in the plugin signature vector".into(),

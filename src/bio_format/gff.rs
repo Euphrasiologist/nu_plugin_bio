@@ -79,7 +79,7 @@ fn add_record(call: &EvaluatedCall, r: gff::Record, vec_vals: &mut Vec<Value>) {
 /// Parse a fasta file into a nushell structure.
 pub fn from_gff_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>, LabeledError> {
     // match on file type
-    let stream = input.as_binary().unwrap();
+    let stream = input.as_binary()?;
 
     let mut reader = gff::Reader::new(stream);
 
