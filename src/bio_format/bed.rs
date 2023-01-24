@@ -17,7 +17,7 @@ pub const BED_COLUMNS: &[&str] = &[
 
 pub fn from_bed_inner(call: &EvaluatedCall, input: Value) -> Result<Vec<Value>, LabeledError> {
     let bytes = match input.as_binary() {
-        Ok(b) => b.to_vec(),
+        Ok(b) => b,
         Err(e) => {
             return Err(LabeledError {
                 label: "Value conversion to binary failed.".into(),
@@ -27,7 +27,7 @@ pub fn from_bed_inner(call: &EvaluatedCall, input: Value) -> Result<Vec<Value>, 
         }
     };
 
-    let mut reader = bed::Reader::new(&bytes[..]);
+    let mut reader = bed::Reader::new(bytes);
 
     let mut records = Vec::new();
 

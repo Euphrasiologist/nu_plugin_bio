@@ -5,7 +5,7 @@ repository = "https://github.com/"
 edition = "2021"
 license = "MIT"
 name = "nu_plugin_bio"
-version = "0.74.1"
+version = "0.74.2"
 
 [dependencies]
 nu-plugin = { version = "0.74.0" }
