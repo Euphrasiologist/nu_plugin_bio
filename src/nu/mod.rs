@@ -1,12 +1,12 @@
 use crate::bio_format::Compression;
 use crate::Bio;
 use nu_plugin::{EvaluatedCall, LabeledError, Plugin};
-use nu_protocol::{Category, Signature, Value};
+use nu_protocol::{Category, PluginSignature, Value};
 
 impl Plugin for Bio {
-    fn signature(&self) -> Vec<Signature> {
+    fn signature(&self) -> Vec<PluginSignature> {
         vec![
-            Signature::build("from fasta")
+            PluginSignature::build("from fasta")
                 .usage("Parse a fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -14,7 +14,7 @@ impl Plugin for Bio {
                     Some('d'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fasta.gz")
+            PluginSignature::build("from fasta.gz")
                 .usage("Parse a gzipped fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -22,7 +22,7 @@ impl Plugin for Bio {
                     Some('d'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fa")
+            PluginSignature::build("from fa")
                 .usage("Parse a fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -30,7 +30,7 @@ impl Plugin for Bio {
                     Some('d'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fa.gz")
+            PluginSignature::build("from fa.gz")
                 .usage("Parse a gzipped fasta file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -38,7 +38,7 @@ impl Plugin for Bio {
                     Some('d'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fastq")
+            PluginSignature::build("from fastq")
                 .usage("Parse a fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -51,7 +51,7 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fastq.gz")
+            PluginSignature::build("from fastq.gz")
                 .usage("Parse a gzipped fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -64,7 +64,7 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fq")
+            PluginSignature::build("from fq")
                 .usage("Parse a fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -77,7 +77,7 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from fq.gz")
+            PluginSignature::build("from fq.gz")
                 .usage("Parse a gzipped fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
                     "description",
@@ -90,37 +90,37 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
-            Signature::build("from bam")
+            PluginSignature::build("from bam")
                 .usage("Parse a BAM file.\nReturns a record containing the header and the body of the BAM file.")
                 .category(Category::Experimental),
-            Signature::build("from sam")
+            PluginSignature::build("from sam")
                 .usage("Parse a SAM file.\nReturns a record containing the header and the body of the SAM file.")
                 .category(Category::Experimental),
-            Signature::build("from cram")
+            PluginSignature::build("from cram")
                 .usage("Parse a CRAM file into SAM output.\nReturns a record containing the header and the body of the CRAM file.")
                 .category(Category::Experimental),
-            Signature::build("from bcf")
+            PluginSignature::build("from bcf")
                 .usage("Parse a BCF file.\nReturns a record containing the header and the body of the BCF file.")
                 .category(Category::Experimental),
-            Signature::build("from bcf.gz")
+            PluginSignature::build("from bcf.gz")
                 .usage("Parse a gzipped BCF file.\nReturns a record containing the header and the body of the BCF file.")
                 .category(Category::Experimental),
-            Signature::build("from vcf")
+            PluginSignature::build("from vcf")
                 .usage("Parse a VCF file.\nReturns a record containing the header and the body of the VCF file.")
                 .category(Category::Experimental),
-            Signature::build("from vcf.gz")
+            PluginSignature::build("from vcf.gz")
                 .usage("Parse a gzipped VCF file.\nReturns a record containing the header and the body of the VCF file.")
                 .category(Category::Experimental),
-            Signature::build("from gff")
+            PluginSignature::build("from gff")
                 .usage("Parse a GFF file.\nReturns a table.")
                 .category(Category::Experimental),
-            Signature::build("from gfa")
+            PluginSignature::build("from gfa")
                 .usage("Parse a GFA file.\nReturns a record containing the header, segments, links, containments, and paths.")
                 .category(Category::Experimental),
-            Signature::build("from gfa.gz")
+            PluginSignature::build("from gfa.gz")
                 .usage("Parse a gzipped GFA file.\nReturns a record containing the header, segments, links, containments, and paths.")
                 .category(Category::Experimental),
-            Signature::build("from bed")
+            PluginSignature::build("from bed")
                 .usage("Parse a BED file.")
                 .category(Category::Experimental)
         ]

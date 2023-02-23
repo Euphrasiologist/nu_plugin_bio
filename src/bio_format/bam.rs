@@ -84,8 +84,8 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     let reference_sequences_nuon = Value::Record {
         cols: reference_sequences.keys().map(|e| e.to_string()).collect(),
         vals: reference_sequences
-            .values()
-            .map(|f| Value::Record {
+            .iter()
+            .map(|(name, f)| Value::Record {
                 cols: vec![
                     "sequence_name".into(),
                     "sequence_length".into(),
@@ -100,7 +100,7 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                 ],
                 vals: vec![
                     Value::String {
-                        val: f.name().to_string(),
+                        val: name.to_string(),
                         span: call.head,
                     },
                     Value::Int {
@@ -175,8 +175,8 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     let read_groups_nuon = Value::Record {
         cols: read_groups.keys().map(|e| e.to_string()).collect(),
         vals: read_groups
-            .values()
-            .map(|f| Value::Record {
+            .iter()
+            .map(|(id, f)| Value::Record {
                 cols: vec![
                     "id".into(),
                     "barcode".into(),
@@ -196,7 +196,7 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                 ],
                 vals: vec![
                     Value::String {
-                        val: f.id().to_string(),
+                        val: id.clone(),
                         span: call.head,
                     },
                     Value::String {
@@ -295,8 +295,8 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     let programs_nuon = Value::Record {
         cols: programs.keys().map(|e| e.to_string()).collect(),
         vals: programs
-            .values()
-            .map(|f| Value::Record {
+            .iter()
+            .map(|(id, f)| Value::Record {
                 cols: vec![
                     "id".into(),
                     "name".into(),
@@ -307,7 +307,7 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                 ],
                 vals: vec![
                     Value::String {
-                        val: f.id().to_string(),
+                        val: id.clone(),
                         span: call.head,
                     },
                     Value::String {
