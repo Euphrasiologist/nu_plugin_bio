@@ -157,33 +157,18 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     call.head.string_value(id),
                     call.head
                         .string_value_from_option(f.barcode(), "No barcode."),
-                    Value::String {
-                        val: f
-                            .sequencing_center()
-                            .unwrap_or("No sequencing center.")
-                            .into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.description().unwrap_or("No description.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.flow_order().unwrap_or("No flow order.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.key_sequence().unwrap_or("No key sequence.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.library().unwrap_or("No library.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.program().unwrap_or("No program.").into(),
-                        span: call.head,
-                    },
+                    call.head
+                        .string_value_from_option(f.sequencing_center(), "No sequencing center."),
+                    call.head
+                        .string_value_from_option(f.description(), "No description."),
+                    call.head
+                        .string_value_from_option(f.flow_order(), "No flow order."),
+                    call.head
+                        .string_value_from_option(f.key_sequence(), "No key sequence."),
+                    call.head
+                        .string_value_from_option(f.library(), "No library."),
+                    call.head
+                        .string_value_from_option(f.program(), "No program."),
                     Value::Int {
                         val: f
                             .predicted_median_insert_size()
@@ -191,23 +176,13 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                             .unwrap_or(0),
                         span: call.head,
                     },
-                    Value::String {
-                        val: f
-                            .platform()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No platform.".into()),
-                        span: call.head,
-                    },
+                    call.head
+                        .string_value_from_option(f.platform(), "No platform."),
                     call.head
                         .string_value_from_option(f.platform_model(), "No platform model"),
-                    Value::String {
-                        val: f.platform_unit().unwrap_or("No platform unit.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.sample().unwrap_or("No sample.").into(),
-                        span: call.head,
-                    },
+                    call.head
+                        .string_value_from_option(f.platform_unit(), "No platform unit."),
+                    call.head.string_value_from_option(f.sample(), "No sample."),
                 ],
                 span: call.head,
             })
@@ -296,72 +271,36 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
 
 /// Parse a SAM record, and append to a vector
 pub fn add_record(call: &EvaluatedCall, r: Record, vec_vals: &mut Vec<Value>) {
-    let read_name = r
-        .read_name()
-        .map(|r_n| r_n.to_string())
-        .unwrap_or("No read name.".into());
-
     let flags = r.flags().bits();
-    let reference_sequence_id = match r.reference_sequence_id() {
-        Some(r_s_id) => r_s_id.to_string(),
-        None => "No reference sequence ID".into(),
-    };
-    let alignment_start = match r.alignment_start() {
-        Some(a_s) => a_s.to_string(),
-        None => "No alignment start".into(),
-    };
-    let mapping_quality = match r.mapping_quality() {
-        Some(m_q) => format!("{}", u8::from(m_q)),
-        None => "".to_string(),
-    };
-    let cigar = format!("{}", r.cigar());
-    let mate_reference_sequence_id = match r.mate_reference_sequence_id() {
-        Some(m_r_s) => format!("{}", m_r_s),
-        None => "No mate reference sequence ID".into(),
-    };
-    let mate_alignment_start = match r.mate_alignment_start() {
-        Some(m_a_s) => m_a_s.to_string(),
-        None => "No mate alignment start".into(),
-    };
-    let template_length = r.template_length();
+    let mapping_quality = r
+        .mapping_quality()
+        .map(|m_q| format!("{}", u8::from(m_q)))
+        .unwrap_or_default();
     let sequence: Vec<u8> = r.sequence().as_ref().iter().map(|e| u8::from(*e)).collect();
-    let quality_scores = r.quality_scores().to_string();
-    let data = r.data().to_string();
 
-    let values_to_extend: Vec<Value> = vec![
-        call.head.string_value(read_name),
+    let values_to_extend = &[
+        call.head
+            .string_value_from_option(r.read_name(), "No read name."),
         call.head.string_value(format!("{:#06x}", flags)),
-        call.head.string_value(reference_sequence_id),
-        call.head.string_value(alignment_start),
+        call.head
+            .string_value_from_option(r.reference_sequence_id(), "No reference sequence ID"),
+        call.head
+            .string_value_from_option(r.alignment_start(), "No alignment start"),
         call.head.string_value(mapping_quality),
-        call.head.string_value(cigar),
-        Value::String {
-            val: mate_reference_sequence_id,
-            span: call.head,
-        },
-        Value::String {
-            val: mate_alignment_start,
-            span: call.head,
-        },
-        Value::Int {
-            val: template_length.into(),
-            span: call.head,
-        },
-        Value::String {
-            val: String::from_utf8(sequence).unwrap(),
-            span: call.head,
-        },
-        Value::String {
-            val: quality_scores,
-            span: call.head,
-        },
-        Value::String {
-            val: data,
-            span: call.head,
-        },
+        call.head.string_value(r.cigar()),
+        call.head.string_value_from_option(
+            r.mate_reference_sequence_id(),
+            "No mate reference sequence ID",
+        ),
+        call.head
+            .string_value_from_option(r.mate_alignment_start(), "No mate alignment start"),
+        call.head.string_value(r.template_length()),
+        call.head.string_value(String::from_utf8(sequence).unwrap()),
+        call.head.string_value(r.quality_scores()),
+        call.head.string_value(r.data()),
     ];
 
-    vec_vals.extend_from_slice(&values_to_extend);
+    vec_vals.extend_from_slice(values_to_extend);
 }
 
 /// Parse a BAM file into a nushell structure.
