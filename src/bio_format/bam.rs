@@ -3,7 +3,7 @@ use noodles::{
     sam::{self, alignment::Record, header::record::value::Map},
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{Span, Value};
 
 /// Columns in a BAM/SAM file
 pub const BAM_COLUMNS: &[&str] = &[
@@ -30,6 +30,27 @@ pub const HEADER_COLUMNS: &[&str] = &[
     "comments",
 ];
 
+trait SpanExt {
+    fn string_value<S: ToString>(&self, s: S) -> Value;
+    fn string_value_from_option<S: ToString>(&self, s: Option<S>, default: &str) -> Value;
+}
+
+impl SpanExt for Span {
+    fn string_value<S: ToString>(&self, s: S) -> Value {
+        Value::String {
+            val: s.to_string(),
+            span: *self,
+        }
+    }
+
+    fn string_value_from_option<S: ToString>(&self, s: Option<S>, default: &str) -> Value {
+        Value::String {
+            val: s.map(|s| s.to_string()).unwrap_or(default.into()),
+            span: *self,
+        }
+    }
+}
+
 /// Parse a B/SAM header
 pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     // @HD in SAM.
@@ -47,34 +68,16 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
             "sub_sort_order".into(),
         ],
         vals: vec![
-            Value::String {
-                val: header.version().to_string(),
-                span: call.head,
-            },
-            Value::String {
-                val: header
-                    .sort_order()
-                    // what's the default..?
-                    // if it's no good, we can always map -> string
-                    .unwrap_or_default()
-                    .to_string(),
-                span: call.head,
-            },
-            Value::String {
-                val: header
-                    .group_order()
-                    // what's the default? see above.
-                    .unwrap_or_default()
-                    .to_string(),
-                span: call.head,
-            },
-            Value::String {
-                val: header
-                    .subsort_order()
-                    .map(|e| e.to_string())
-                    .unwrap_or_else(|| "No subsort order.".into()),
-                span: call.head,
-            },
+            call.head.string_value(header.version()),
+            // what's the default..?
+            // if it's no good, we can always map -> string
+            call.head
+                .string_value(header.sort_order().unwrap_or_default()),
+            // what's the default? see above.
+            call.head
+                .string_value(header.group_order().unwrap_or_default()),
+            call.head
+                .string_value_from_option(header.subsort_order(), "No subsort order."),
         ],
         span: call.head,
     };
@@ -99,61 +102,26 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     "uri".into(),
                 ],
                 vals: vec![
-                    Value::String {
-                        val: name.to_string(),
-                        span: call.head,
-                    },
+                    call.head.string_value(name),
                     Value::Int {
                         val: usize::from(f.length()) as i64,
                         span: call.head,
                     },
-                    Value::String {
-                        val: f
-                            .alternative_locus()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No alternative locus.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .alternative_names()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No alternative names.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .assembly_id()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No assembly ID.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.description().unwrap_or("No description.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .md5_checksum()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No md5 checksum.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.species().unwrap_or("No species name.").into(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .molecule_topology()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No molecule topology.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.uri().unwrap_or("No URI.").into(),
-                        span: call.head,
-                    },
+                    call.head
+                        .string_value_from_option(f.alternative_locus(), "No alternative locus."),
+                    call.head
+                        .string_value_from_option(f.alternative_names(), "No alternative names."),
+                    call.head
+                        .string_value_from_option(f.assembly_id(), "No assembly ID."),
+                    call.head
+                        .string_value_from_option(f.description(), "No description"),
+                    call.head
+                        .string_value_from_option(f.md5_checksum(), "No md5 checksum."),
+                    call.head
+                        .string_value_from_option(f.species(), "No species name."),
+                    call.head
+                        .string_value_from_option(f.molecule_topology(), "No molecule topology."),
+                    call.head.string_value_from_option(f.uri(), "No URI."),
                 ],
                 span: call.head,
             })
@@ -186,14 +154,9 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     "sample".into(),
                 ],
                 vals: vec![
-                    Value::String {
-                        val: id.clone(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.barcode().unwrap_or("No barcode.").into(),
-                        span: call.head,
-                    },
+                    call.head.string_value(id),
+                    call.head
+                        .string_value_from_option(f.barcode(), "No barcode."),
                     Value::String {
                         val: f
                             .sequencing_center()
@@ -235,10 +198,8 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                             .unwrap_or_else(|| "No platform.".into()),
                         span: call.head,
                     },
-                    Value::String {
-                        val: f.platform_model().unwrap_or("No platform model").into(),
-                        span: call.head,
-                    },
+                    call.head
+                        .string_value_from_option(f.platform_model(), "No platform model"),
                     Value::String {
                         val: f.platform_unit().unwrap_or("No platform unit.").into(),
                         span: call.head,
@@ -270,17 +231,8 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     "version".into(),
                 ],
                 vals: vec![
-                    Value::String {
-                        val: id.clone(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .name()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No name.".into()),
-                        span: call.head,
-                    },
+                    call.head.string_value(id),
+                    call.head.string_value_from_option(f.name(), "No name."),
                     Value::String {
                         val: f
                             .command_line()
@@ -377,30 +329,12 @@ pub fn add_record(call: &EvaluatedCall, r: Record, vec_vals: &mut Vec<Value>) {
     let data = r.data().to_string();
 
     let values_to_extend: Vec<Value> = vec![
-        Value::String {
-            val: read_name,
-            span: call.head,
-        },
-        Value::String {
-            val: format!("{:#06x}", flags),
-            span: call.head,
-        },
-        Value::String {
-            val: reference_sequence_id,
-            span: call.head,
-        },
-        Value::String {
-            val: alignment_start,
-            span: call.head,
-        },
-        Value::String {
-            val: mapping_quality,
-            span: call.head,
-        },
-        Value::String {
-            val: cigar,
-            span: call.head,
-        },
+        call.head.string_value(read_name),
+        call.head.string_value(format!("{:#06x}", flags)),
+        call.head.string_value(reference_sequence_id),
+        call.head.string_value(alignment_start),
+        call.head.string_value(mapping_quality),
+        call.head.string_value(cigar),
         Value::String {
             val: mate_reference_sequence_id,
             span: call.head,
@@ -414,7 +348,7 @@ pub fn add_record(call: &EvaluatedCall, r: Record, vec_vals: &mut Vec<Value>) {
             span: call.head,
         },
         Value::String {
-            val: std::string::String::from_utf8(sequence).unwrap(),
+            val: String::from_utf8(sequence).unwrap(),
             span: call.head,
         },
         Value::String {
