@@ -5,7 +5,7 @@ use noodles::{bgzf, fasta, fastq};
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
-use crate::bio_format::Compression;
+use crate::bio_format::{Compression, SpanExt};
 
 /// Compression status of a fastq reader.
 enum FastqReader<'a> {
@@ -46,38 +46,23 @@ fn iterate_fastq_records<R: BufRead>(
 
         let mut vec_vals = Vec::new();
 
-        vec_vals.push(Value::String {
-            val: id.to_string(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string(id));
 
         if description {
             let d_op = r.description();
             // TODO: remove this unwrap
             let d = std::str::from_utf8(d_op).unwrap();
-
-            vec_vals.push(Value::String {
-                val: d.to_string(),
-                span: call.head,
-            });
+            vec_vals.push(call.head.with_string(d));
         }
 
         if quality_scores {
             let q_op = r.quality_scores();
             // TODO: remove this unwrap
             let q = std::str::from_utf8(q_op).unwrap();
-
-            vec_vals.push(Value::String {
-                val: q.to_string(),
-                span: call.head,
-            });
+            vec_vals.push(call.head.with_string(q));
         }
 
-        vec_vals.push(Value::String {
-            // TODO: remove this unwrap
-            val: String::from_utf8(seq.to_owned()).unwrap(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string(std::str::from_utf8(seq).unwrap()));
 
         value_records.push(Value::Record {
             cols: cols.clone(),
@@ -140,32 +125,22 @@ pub fn from_fastq_inner(
     let mut value_records = Vec::new();
 
     match reader {
-        FastqReader::Uncompressed(u) => {
-            match iterate_fastq_records(
-                *u,
-                call,
-                &mut value_records,
-                description,
-                quality_scores,
-                cols,
-            ) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            }
-        }
-        FastqReader::Compressed(c) => {
-            match iterate_fastq_records(
-                *c,
-                call,
-                &mut value_records,
-                description,
-                quality_scores,
-                cols,
-            ) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            }
-        }
+        FastqReader::Uncompressed(u) => iterate_fastq_records(
+            *u,
+            call,
+            &mut value_records,
+            description,
+            quality_scores,
+            cols,
+        )?,
+        FastqReader::Compressed(c) => iterate_fastq_records(
+            *c,
+            call,
+            &mut value_records,
+            description,
+            quality_scores,
+            cols,
+        )?,
     };
 
     Ok(value_records)
@@ -190,30 +165,17 @@ fn iterate_fasta_records<R: BufRead>(
                 })
             }
         };
-        let id = r.name();
         let seq = std::str::from_utf8(r.sequence().as_ref()).unwrap();
 
         let mut vec_vals = Vec::new();
 
-        vec_vals.push(Value::String {
-            val: id.to_string(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string(r.name()));
 
         if description {
-            let d_op = r.description();
-            let d = d_op.unwrap_or("");
-
-            vec_vals.push(Value::String {
-                val: d.to_string(),
-                span: call.head,
-            });
+            vec_vals.push(call.head.with_string_or(r.description(), ""));
         }
 
-        vec_vals.push(Value::String {
-            val: seq.to_string(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string(seq));
 
         value_records.push(Value::Record {
             cols: cols.clone(),
