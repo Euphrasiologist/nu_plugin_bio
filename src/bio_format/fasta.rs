@@ -106,7 +106,7 @@ pub fn from_fastq_inner(
                 msg: format!("cause of failure: {}", e),
                 span: Some(call.head),
             })
-        },
+        }
     };
 
     let reader = match gz {

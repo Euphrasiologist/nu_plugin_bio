@@ -4,8 +4,7 @@ use noodles::sam;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
-use crate::bio_format::bam::{add_record, parse_header, BAM_COLUMNS};
-
+use crate::bio_format::bam::{create_record_values, parse_header, BAM_COLUMNS};
 // TODO: also allow the reference to be passed, so we can view the alignment sequences?
 
 /// Parse a CRAM file into a nushell structure.
@@ -67,8 +66,7 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Lab
 
             for r in records {
                 let r = r.try_into_alignment_record(&header).unwrap();
-                let mut vec_vals = Vec::new();
-                add_record(call, r, &mut vec_vals);
+                let vec_vals = create_record_values(call, r);
 
                 value_records.push(Value::Record {
                     cols: BAM_COLUMNS.iter().map(|e| String::from(*e)).collect(),

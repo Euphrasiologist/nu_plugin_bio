@@ -44,15 +44,14 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
     let val = opt_field.value;
 
     // TAG:TYPE:VALUE
-    let tag_type_value =
-        |typ: String, value: String, b: String| -> Result<Value, LabeledError> {
-            let tag_string = string_from_utf8(tag.to_vec(), call, "tag is malformed")?;
+    let tag_type_value = |typ: String, value: String, b: String| -> Result<Value, LabeledError> {
+        let tag_string = string_from_utf8(tag.to_vec(), call, "tag is malformed")?;
 
-            Ok(Value::String {
-                val: format!("{tag_string}:{typ}:{b}{value}"),
-                span: call.head,
-            })
-        };
+        Ok(Value::String {
+            val: format!("{tag_string}:{typ}:{b}{value}"),
+            span: call.head,
+        })
+    };
 
     match val {
         // A (character)
@@ -62,7 +61,7 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
             "".into(),
         ),
         // i (integer)
-        OptFieldVal::Int(i) => tag_type_value( String::from("i"), i.to_string(), "".into()),
+        OptFieldVal::Int(i) => tag_type_value(String::from("i"), i.to_string(), "".into()),
         // f (real number)
         OptFieldVal::Float(f) => tag_type_value(String::from("f"), f.to_string(), "".into()),
         // Z (string)

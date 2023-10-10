@@ -2,6 +2,8 @@
 pub mod bam;
 /// BCF + VCF parsing facility.
 pub mod bcf;
+/// BED parsing facility
+pub mod bed;
 /// CRAM parsing facility.
 pub mod cram;
 /// Fasta parsing facility.
@@ -10,8 +12,6 @@ pub mod fasta;
 pub mod gfa;
 /// GFF(3) parsing facility
 pub mod gff;
-/// BED parsing facility
-pub mod bed;
 
 /// Compression enum
 pub enum Compression {
