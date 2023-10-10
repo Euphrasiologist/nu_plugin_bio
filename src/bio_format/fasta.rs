@@ -30,16 +30,11 @@ fn iterate_fastq_records<R: BufRead>(
 ) -> Result<(), LabeledError> {
     // iterate over the records.
     for record in reader.records() {
-        let r = match record {
-            Ok(rec) => rec,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Record reading failed.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
+        let r = record.map_err(|e| LabeledError {
+            label: "Record reading failed.".into(),
+            msg: format!("cause of failure: {}", e),
+            span: Some(call.head),
+        })?;
 
         let mut vec_vals = Vec::new();
         vec_vals.push(call.head.with_string_from_utf8(r.name()));
