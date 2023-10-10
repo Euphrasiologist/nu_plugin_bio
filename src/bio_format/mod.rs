@@ -23,6 +23,7 @@ pub enum Compression {
 pub trait SpanExt {
     fn with_string<S: ToString>(&self, s: S) -> Value;
     fn with_string_or<S: ToString>(&self, s: Option<S>, default: &str) -> Value;
+    fn with_string_from_utf8(&self, s: &[u8]) -> Value;
 }
 
 impl SpanExt for Span {
@@ -38,5 +39,9 @@ impl SpanExt for Span {
             val: s.map(|s| s.to_string()).unwrap_or(default.into()),
             span: *self,
         }
+    }
+    fn with_string_from_utf8(&self, s: &[u8]) -> Value {
+        // TODO: remove this unwrap
+        self.with_string(std::str::from_utf8(s).unwrap())
     }
 }
