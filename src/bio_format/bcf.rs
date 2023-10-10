@@ -98,18 +98,9 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
             .map(|f| Value::Record {
                 cols: vec!["number".into(), "type".into(), "description".into()],
                 vals: vec![
-                    Value::String {
-                        val: f.number().to_string(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.ty().to_string(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.description().to_string(),
-                        span: call.head,
-                    },
+                    call.head.with_string(f.number()),
+                    call.head.with_string(f.ty()),
+                    call.head.with_string(f.description()),
                 ],
                 span: call.head,
             })
@@ -125,10 +116,7 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
             .values()
             .map(|f| Value::Record {
                 cols: vec!["description".into()],
-                vals: vec![Value::String {
-                    val: f.description().to_string(),
-                    span: call.head,
-                }],
+                vals: vec![call.head.with_string(f.description())],
                 span: call.head,
             })
             .collect(),
@@ -136,13 +124,9 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
     };
 
     // assembly
-    let assembly = Value::String {
-        val: h
-            .assembly()
-            .unwrap_or("No reference assembly URL specified.")
-            .to_string(),
-        span: call.head,
-    };
+    let assembly = call
+        .head
+        .with_string_or(h.assembly(), "No reference assembly URL specified.");
 
     // contigs
     let contigs = h.contigs();
@@ -159,10 +143,7 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
                     span: call.head,
                 }];
 
-                vals.extend(f.other_fields().values().map(|e| Value::String {
-                    val: e.clone(),
-                    span: call.head,
-                }));
+                vals.extend(f.other_fields().values().map(|e| call.head.with_string(e)));
 
                 Value::Record {
                     cols,
@@ -185,10 +166,7 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
                 vals: f
                     .values()
                     .iter()
-                    .map(|e| Value::String {
-                        val: e.clone(),
-                        span: call.head,
-                    })
+                    .map(|e| call.head.with_string(e))
                     .collect(),
                 span: call.head,
             })
@@ -197,21 +175,16 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
     };
 
     // don't know how to parse Pedigrees currently?
-    let pedigree_db = h.pedigree_db();
-    let pedigree_nuon = Value::String {
-        val: pedigree_db.unwrap_or("No pedigree database.").into(),
-        span: call.head,
-    };
+    let pedigree_nuon = call
+        .head
+        .with_string_or(h.pedigree_db(), "No pedigree database.");
 
     // sample names
-    let sample_names = h.sample_names();
     let sample_names_nuon = Value::List {
-        vals: sample_names
+        vals: h
+            .sample_names()
             .iter()
-            .map(|e| Value::String {
-                val: e.clone(),
-                span: call.head,
-            })
+            .map(|e| call.head.with_string(e))
             .collect(),
         span: call.head,
     };
@@ -239,28 +212,11 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
 /// Add a VCF record to the vector.
 /// TODO: make data more structured, so less is turned into a string immediately.
 fn add_record(call: &EvaluatedCall, r: vcf::Record, vec_vals: &mut Vec<Value>) {
-    let chrom = r.chromosome().to_string();
     let pos = usize::from(r.position());
     let rlen = r.reference_bases().len();
-    let qual = match r.quality_score() {
-        Some(q) => q.to_string(),
-        None => "".into(),
-    };
-    let id = r.ids().to_string();
-    let reference = r.reference_bases().to_string();
-    let alt = r.alternate_bases().to_string();
-    let filter = match r.filters() {
-        Some(f) => f.to_string(),
-        None => "".into(),
-    };
-    let info = r.info().to_string();
-    let genotypes = r.genotypes().to_string();
 
     let values_to_extend: Vec<Value> = vec![
-        Value::String {
-            val: chrom,
-            span: call.head,
-        },
+        call.head.with_string(r.chromosome()),
         Value::Int {
             val: pos as i64,
             span: call.head,
@@ -269,34 +225,13 @@ fn add_record(call: &EvaluatedCall, r: vcf::Record, vec_vals: &mut Vec<Value>) {
             val: rlen as i64,
             span: call.head,
         },
-        Value::String {
-            val: qual,
-            span: call.head,
-        },
-        Value::String {
-            val: id,
-            span: call.head,
-        },
-        Value::String {
-            val: reference,
-            span: call.head,
-        },
-        Value::String {
-            val: alt,
-            span: call.head,
-        },
-        Value::String {
-            val: filter,
-            span: call.head,
-        },
-        Value::String {
-            val: info,
-            span: call.head,
-        },
-        Value::String {
-            val: genotypes,
-            span: call.head,
-        },
+        call.head.with_string_or(r.quality_score(), ""),
+        call.head.with_string(r.ids()),
+        call.head.with_string(r.reference_bases()),
+        call.head.with_string(r.alternate_bases()),
+        call.head.with_string_or(r.filters(), ""),
+        call.head.with_string(r.info()),
+        call.head.with_string(r.genotypes()),
     ];
 
     vec_vals.extend_from_slice(&values_to_extend);
