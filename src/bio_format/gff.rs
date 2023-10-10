@@ -3,6 +3,8 @@ use noodles::gff;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
+use super::SpanExt;
+
 /// The GFF3 headers
 const GFF_COLUMNS: &[&str] = &[
     "ref_seq_name",
@@ -18,35 +20,13 @@ const GFF_COLUMNS: &[&str] = &[
 
 /// Add a GFF record
 fn add_record(call: &EvaluatedCall, r: gff::Record, vec_vals: &mut Vec<Value>) {
-    let ref_seq_name = r.reference_sequence_name();
-    let source = r.source();
-    let ty = r.ty();
     let start = usize::from(r.start());
     let end = usize::from(r.end());
-    let score = match r.score() {
-        Some(s) => format!("{}", s),
-        None => "".into(),
-    };
-    let strand = r.strand().to_string();
-    let phase = match r.phase() {
-        Some(p) => p.to_string(),
-        None => "".into(),
-    };
-    let attributes = r.attributes().to_string();
 
     let values_to_extend: Vec<Value> = vec![
-        Value::String {
-            val: ref_seq_name.into(),
-            span: call.head,
-        },
-        Value::String {
-            val: source.into(),
-            span: call.head,
-        },
-        Value::String {
-            val: ty.into(),
-            span: call.head,
-        },
+        call.head.with_string(r.reference_sequence_name()),
+        call.head.with_string(r.source()),
+        call.head.with_string(r.ty()),
         Value::Int {
             val: start as i64,
             span: call.head,
@@ -55,22 +35,10 @@ fn add_record(call: &EvaluatedCall, r: gff::Record, vec_vals: &mut Vec<Value>) {
             val: end as i64,
             span: call.head,
         },
-        Value::String {
-            val: score,
-            span: call.head,
-        },
-        Value::String {
-            val: strand,
-            span: call.head,
-        },
-        Value::String {
-            val: phase,
-            span: call.head,
-        },
-        Value::String {
-            val: attributes,
-            span: call.head,
-        },
+        call.head.with_string_or(r.score(), ""),
+        call.head.with_string(r.strand()),
+        call.head.with_string_or(r.phase(), ""),
+        call.head.with_string(r.attributes()),
     ];
 
     vec_vals.extend_from_slice(&values_to_extend);

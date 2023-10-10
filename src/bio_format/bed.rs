@@ -2,6 +2,8 @@ use noodles::bed;
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
+use super::SpanExt;
+
 /// BED reader type
 const BED_COLUMN_NUMBER: u8 = 3;
 
@@ -40,10 +42,7 @@ pub fn from_bed_inner(call: &EvaluatedCall, input: Value) -> Result<Vec<Value>, 
 
         let mut row = Vec::new();
 
-        row.push(Value::String {
-            val: record.reference_sequence_name().into(),
-            span: call.head,
-        });
+        row.push(call.head.with_string(record.reference_sequence_name()));
         let start: usize = record.start_position().into();
         row.push(Value::Int {
             val: start as i64,
