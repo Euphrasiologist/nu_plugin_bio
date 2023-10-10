@@ -1,9 +1,10 @@
+use crate::bio_format::SpanExt;
 use noodles::{
     bam,
     sam::{self, alignment::Record, header::record::value::Map},
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::{Span, Value};
+use nu_protocol::Value;
 
 /// Columns in a BAM/SAM file
 pub const BAM_COLUMNS: &[&str] = &[
@@ -29,27 +30,6 @@ pub const HEADER_COLUMNS: &[&str] = &[
     "programs",
     "comments",
 ];
-
-trait SpanExt {
-    fn with_string<S: ToString>(&self, s: S) -> Value;
-    fn with_string_or<S: ToString>(&self, s: Option<S>, default: &str) -> Value;
-}
-
-impl SpanExt for Span {
-    fn with_string<S: ToString>(&self, s: S) -> Value {
-        Value::String {
-            val: s.to_string(),
-            span: *self,
-        }
-    }
-
-    fn with_string_or<S: ToString>(&self, s: Option<S>, default: &str) -> Value {
-        Value::String {
-            val: s.map(|s| s.to_string()).unwrap_or(default.into()),
-            span: *self,
-        }
-    }
-}
 
 /// Parse a B/SAM header
 pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {

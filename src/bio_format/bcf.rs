@@ -9,6 +9,8 @@ use nu_protocol::Value;
 use crate::bio_format::Compression;
 use std::io::{BufRead, BufReader};
 
+use super::SpanExt;
+
 /// Compression status of a VCF reader.
 enum VCFReader<'a> {
     Uncompressed(Box<vcf::Reader<&'a [u8]>>),
@@ -51,10 +53,7 @@ const HEADER_COLUMNS: &[&str] = &[
 
 /// This parses the header of a V/BCF
 fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
-    let file_format = Value::String {
-        val: h.file_format().to_string(),
-        span: call.head,
-    };
+    let file_format = call.head.with_string(h.file_format());
     let infos = h.infos();
 
     // add infos into a record structure
@@ -65,18 +64,9 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
             .map(|f| Value::Record {
                 cols: vec!["number".into(), "type".into(), "description".into()],
                 vals: vec![
-                    Value::String {
-                        val: f.number().to_string(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.ty().to_string(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f.description().to_string(),
-                        span: call.head,
-                    },
+                    call.head.with_string(f.number()),
+                    call.head.with_string(f.ty()),
+                    call.head.with_string(f.description()),
                 ],
                 span: call.head,
             })
@@ -92,10 +82,7 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
             .values()
             .map(|f| Value::Record {
                 cols: vec!["description".into()],
-                vals: vec![Value::String {
-                    val: f.description().to_string(),
-                    span: call.head,
-                }],
+                vals: vec![call.head.with_string(f.description())],
                 span: call.head,
             })
             .collect(),
