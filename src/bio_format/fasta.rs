@@ -5,7 +5,7 @@ use noodles::{bgzf, fasta, fastq};
 use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 
-use crate::bio_format::Compression;
+use crate::bio_format::{Compression, SpanExt};
 
 /// Compression status of a fastq reader.
 enum FastqReader<'a> {
@@ -30,54 +30,24 @@ fn iterate_fastq_records<R: BufRead>(
 ) -> Result<(), LabeledError> {
     // iterate over the records.
     for record in reader.records() {
-        let r = match record {
-            Ok(rec) => rec,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Record reading failed.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
-        // TODO: remove this unwrap
-        let id = std::str::from_utf8(r.name()).unwrap();
-        let seq = r.sequence();
+        let r = record.map_err(|e| LabeledError {
+            label: "Record reading failed.".into(),
+            msg: format!("cause of failure: {}", e),
+            span: Some(call.head),
+        })?;
 
         let mut vec_vals = Vec::new();
-
-        vec_vals.push(Value::String {
-            val: id.to_string(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string_from_utf8(r.name()));
 
         if description {
-            let d_op = r.description();
-            // TODO: remove this unwrap
-            let d = std::str::from_utf8(d_op).unwrap();
-
-            vec_vals.push(Value::String {
-                val: d.to_string(),
-                span: call.head,
-            });
+            vec_vals.push(call.head.with_string_from_utf8(r.description()));
         }
 
         if quality_scores {
-            let q_op = r.quality_scores();
-            // TODO: remove this unwrap
-            let q = std::str::from_utf8(q_op).unwrap();
-
-            vec_vals.push(Value::String {
-                val: q.to_string(),
-                span: call.head,
-            });
+            vec_vals.push(call.head.with_string_from_utf8(r.quality_scores()));
         }
 
-        vec_vals.push(Value::String {
-            // TODO: remove this unwrap
-            val: String::from_utf8(seq.to_owned()).unwrap(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string_from_utf8(r.sequence()));
 
         value_records.push(Value::Record {
             cols: cols.clone(),
@@ -98,16 +68,11 @@ pub fn from_fastq_inner(
     let description = call.has_flag("description");
     let quality_scores = call.has_flag("quality-scores");
 
-    let bytes = match input.as_binary() {
-        Ok(b) => b,
-        Err(e) => {
-            return Err(LabeledError {
-                label: "Value conversion to binary failed.".into(),
-                msg: format!("cause of failure: {}", e),
-                span: Some(call.head),
-            })
-        },
-    };
+    let bytes = input.as_binary().map_err(|e| LabeledError {
+        label: "Value conversion to binary failed.".into(),
+        msg: format!("cause of failure: {}", e),
+        span: Some(call.head),
+    })?;
 
     let reader = match gz {
         Compression::Uncompressed => FastqReader::Uncompressed(Box::new(fastq::Reader::new(bytes))),
@@ -140,32 +105,22 @@ pub fn from_fastq_inner(
     let mut value_records = Vec::new();
 
     match reader {
-        FastqReader::Uncompressed(u) => {
-            match iterate_fastq_records(
-                *u,
-                call,
-                &mut value_records,
-                description,
-                quality_scores,
-                cols,
-            ) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            }
-        }
-        FastqReader::Compressed(c) => {
-            match iterate_fastq_records(
-                *c,
-                call,
-                &mut value_records,
-                description,
-                quality_scores,
-                cols,
-            ) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            }
-        }
+        FastqReader::Uncompressed(u) => iterate_fastq_records(
+            *u,
+            call,
+            &mut value_records,
+            description,
+            quality_scores,
+            cols,
+        )?,
+        FastqReader::Compressed(c) => iterate_fastq_records(
+            *c,
+            call,
+            &mut value_records,
+            description,
+            quality_scores,
+            cols,
+        )?,
     };
 
     Ok(value_records)
@@ -180,40 +135,21 @@ fn iterate_fasta_records<R: BufRead>(
 ) -> Result<(), LabeledError> {
     // iterate over the records
     for record in reader.records() {
-        let r = match record {
-            Ok(rec) => rec,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Record reading failed.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
-        let id = r.name();
-        let seq = std::str::from_utf8(r.sequence().as_ref()).unwrap();
+        let r = record.map_err(|e| LabeledError {
+            label: "Record reading failed.".into(),
+            msg: format!("cause of failure: {}", e),
+            span: Some(call.head),
+        })?;
 
         let mut vec_vals = Vec::new();
 
-        vec_vals.push(Value::String {
-            val: id.to_string(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string(r.name()));
 
         if description {
-            let d_op = r.description();
-            let d = d_op.unwrap_or("");
-
-            vec_vals.push(Value::String {
-                val: d.to_string(),
-                span: call.head,
-            });
+            vec_vals.push(call.head.with_string_or(r.description(), ""));
         }
 
-        vec_vals.push(Value::String {
-            val: seq.to_string(),
-            span: call.head,
-        });
+        vec_vals.push(call.head.with_string_from_utf8(r.sequence().as_ref()));
 
         value_records.push(Value::Record {
             cols: cols.clone(),
@@ -256,16 +192,10 @@ pub fn from_fasta_inner(
 
     match reader {
         FastaReader::Uncompressed(u) => {
-            match iterate_fasta_records(*u, call, &mut value_records, description, cols) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            }
+            iterate_fasta_records(*u, call, &mut value_records, description, cols)?
         }
         FastaReader::Compressed(c) => {
-            match iterate_fasta_records(c, call, &mut value_records, description, cols) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            }
+            iterate_fasta_records(c, call, &mut value_records, description, cols)?
         }
     };
 

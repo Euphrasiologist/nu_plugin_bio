@@ -10,7 +10,7 @@ use nu_plugin::{EvaluatedCall, LabeledError};
 use nu_protocol::Value;
 use std::io::{BufRead, BufReader};
 
-use super::Compression;
+use super::{Compression, SpanExt};
 use noodles::bgzf;
 
 /// Compression status of a VCF reader.
@@ -27,14 +27,11 @@ fn string_from_utf8(
     call: &EvaluatedCall,
     context: &str,
 ) -> Result<String, LabeledError> {
-    match String::from_utf8(inner) {
-        Ok(s) => Ok(s),
-        Err(e) => Err(LabeledError {
-            label: "Could convert bytes to string.".into(),
-            msg: format!("{}: {}", context, e),
-            span: Some(call.head),
-        }),
-    }
+    String::from_utf8(inner).map_err(|e| LabeledError {
+        label: "Could convert bytes to string.".into(),
+        msg: format!("{}: {}", context, e),
+        span: Some(call.head),
+    })
 }
 
 /// Parse a string representation of the option fields, until
@@ -44,25 +41,23 @@ fn parse_optfieldval(opt_field: OptField, call: &EvaluatedCall) -> Result<Value,
     let val = opt_field.value;
 
     // TAG:TYPE:VALUE
-    let tag_type_value =
-        |typ: String, value: String, b: String| -> Result<Value, LabeledError> {
-            let tag_string = string_from_utf8(tag.to_vec(), call, "tag is malformed")?;
+    let tag_type_value = |typ: String, value: String, b: String| -> Result<Value, LabeledError> {
+        let tag_string = string_from_utf8(tag.to_vec(), call, "tag is malformed")?;
 
-            Ok(Value::String {
-                val: format!("{tag_string}:{typ}:{b}{value}"),
-                span: call.head,
-            })
-        };
+        Ok(call
+            .head
+            .with_string(format!("{tag_string}:{typ}:{b}{value}")))
+    };
 
     match val {
         // A (character)
         OptFieldVal::A(a) => tag_type_value(
-            String::from("A"),
+            "A".into(),
             string_from_utf8(vec![a], call, "'A' value malformed")?,
             "".into(),
         ),
         // i (integer)
-        OptFieldVal::Int(i) => tag_type_value( String::from("i"), i.to_string(), "".into()),
+        OptFieldVal::Int(i) => tag_type_value("i".into(), i.to_string(), "".into()),
         // f (real number)
         OptFieldVal::Float(f) => tag_type_value(String::from("f"), f.to_string(), "".into()),
         // Z (string)
@@ -117,16 +112,11 @@ fn lines_to_nuon<R: BufRead>(
     call: &EvaluatedCall,
 ) -> Result<(), LabeledError> {
     for line in gfa_reader {
-        let line = match line {
-            Ok(l) => l,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Could not read a line in the GFA.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
+        let line = line.map_err(|e| LabeledError {
+            label: "Could not read a line in the GFA.".into(),
+            msg: format!("cause of failure: {}", e),
+            span: Some(call.head),
+        })?;
         // if this not added then
         if line.is_empty() {
             continue;
@@ -137,10 +127,7 @@ fn lines_to_nuon<R: BufRead>(
                 // what sort of line do we have?
                 match parsed {
                     Header(h) => {
-                        let version = h
-                            .version
-                            .and_then(|e| String::from_utf8(e).ok())
-                            .unwrap_or_else(|| "No version specified.".into());
+                        let version = h.version.and_then(|e| String::from_utf8(e).ok());
 
                         let opts: Result<Vec<Value>, _> = h
                             .optional
@@ -151,10 +138,7 @@ fn lines_to_nuon<R: BufRead>(
                         header_nuon.push(Value::Record {
                             cols: vec!["version".into(), "optional_fields".into()],
                             vals: vec![
-                                Value::String {
-                                    val: version,
-                                    span: call.head,
-                                },
+                                call.head.with_string_or(version, "No version specified."),
                                 Value::List {
                                     vals: opts?,
                                     span: call.head,
@@ -177,14 +161,8 @@ fn lines_to_nuon<R: BufRead>(
                         segments_nuon.push(Value::Record {
                             cols: vec!["name".into(), "sequence".into(), "optional_fields".into()],
                             vals: vec![
-                                Value::String {
-                                    val: name?,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: seq,
-                                    span: call.head,
-                                },
+                                call.head.with_string(name?),
+                                call.head.with_string(seq),
                                 Value::List {
                                     vals: opts?,
                                     span: call.head,
@@ -194,12 +172,10 @@ fn lines_to_nuon<R: BufRead>(
                         })
                     }
                     Link(l) => {
-                        let fo = l.from_orient.to_string();
-                        let to = l.to_orient.to_string();
-                        let fs = string_from_utf8(l.from_segment, call, "from segment malformed");
-                        let ts = string_from_utf8(l.to_segment, call, "to segment malformed");
+                        let fs = string_from_utf8(l.from_segment, call, "from segment malformed")?;
+                        let ts = string_from_utf8(l.to_segment, call, "to segment malformed")?;
                         let overlap =
-                            string_from_utf8(l.overlap, call, "overlap (CIGAR) malformed");
+                            string_from_utf8(l.overlap, call, "overlap (CIGAR) malformed")?;
                         let opts: Result<Vec<Value>, _> = l
                             .optional
                             .iter()
@@ -216,26 +192,11 @@ fn lines_to_nuon<R: BufRead>(
                                 "optional_fields".into(),
                             ],
                             vals: vec![
-                                Value::String {
-                                    val: fo,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: to,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: fs?,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: ts?,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: overlap?,
-                                    span: call.head,
-                                },
+                                call.head.with_string(l.from_orient),
+                                call.head.with_string(l.to_orient),
+                                call.head.with_string(fs),
+                                call.head.with_string(ts),
+                                call.head.with_string(overlap),
                                 Value::List {
                                     vals: opts?,
                                     span: call.head,
@@ -247,10 +208,8 @@ fn lines_to_nuon<R: BufRead>(
                     Containment(c) => {
                         let containment_name =
                             string_from_utf8(c.contained_name, call, "containment name malformed");
-                        let containment_orient = c.contained_orient.to_string();
                         let container_name =
                             string_from_utf8(c.container_name, call, "container name malformed");
-                        let container_orient = c.container_orient.to_string();
                         let overlap =
                             string_from_utf8(c.overlap, call, "overlap (CIGAR) malformed");
                         let position = c.pos;
@@ -271,26 +230,11 @@ fn lines_to_nuon<R: BufRead>(
                                 "optional_fields".into(),
                             ],
                             vals: vec![
-                                Value::String {
-                                    val: containment_name?,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: containment_orient,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: container_name?,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: container_orient,
-                                    span: call.head,
-                                },
-                                Value::String {
-                                    val: overlap?,
-                                    span: call.head,
-                                },
+                                call.head.with_string(containment_name?),
+                                call.head.with_string(c.contained_orient),
+                                call.head.with_string(container_name?),
+                                call.head.with_string(c.container_orient),
+                                call.head.with_string(overlap?),
                                 Value::Int {
                                     val: position as i64,
                                     span: call.head,
@@ -313,13 +257,7 @@ fn lines_to_nuon<R: BufRead>(
                         let overlaps: Vec<Value> = p
                             .overlaps
                             .iter()
-                            .map(|e| Value::String {
-                                val: e
-                                    .as_ref()
-                                    .map(|f| f.to_string())
-                                    .unwrap_or_else(|| "".into()),
-                                span: call.head,
-                            })
+                            .map(|e| call.head.with_string_or(e.as_ref(), ""))
                             .collect();
                         let opts: Result<Vec<Value>, LabeledError> = p
                             .optional
@@ -335,15 +273,9 @@ fn lines_to_nuon<R: BufRead>(
                                 "optional_fields".into(),
                             ],
                             vals: vec![
-                                Value::String {
-                                    val: path_name?,
-                                    span: call.head,
-                                },
+                                call.head.with_string(path_name?),
                                 // probably should be a list...
-                                Value::String {
-                                    val: segment_names,
-                                    span: call.head,
-                                },
+                                call.head.with_string(segment_names),
                                 Value::List {
                                     vals: overlaps,
                                     span: call.head,
@@ -379,22 +311,16 @@ pub fn from_gfa_inner(
 ) -> Result<Value, LabeledError> {
     let parser: GFAParser<Vec<u8>, Vec<OptField>> = GFAParser::new();
 
-    let bytes = match input.as_binary() {
-        Ok(b) => b,
-        Err(e) => {
-            return Err(LabeledError {
-                label: "Value conversion to binary failed.".into(),
-                msg: format!("cause of failure: {}", e),
-                span: Some(call.head),
-            })
-        }
-    };
+    let bytes = input.as_binary().map_err(|e| LabeledError {
+        label: "Value conversion to binary failed.".into(),
+        msg: format!("cause of failure: {}", e),
+        span: Some(call.head),
+    })?;
 
+    let reader = BufReader::new(bytes);
     let lines = match gz {
-        Compression::Uncompressed => GFAReader::Uncompressed(BufReader::new(bytes).byte_lines()),
-        Compression::Gzipped => {
-            GFAReader::Compressed(bgzf::Reader::new(BufReader::new(bytes)).byte_lines())
-        }
+        Compression::Uncompressed => GFAReader::Uncompressed(reader.byte_lines()),
+        Compression::Gzipped => GFAReader::Compressed(bgzf::Reader::new(reader).byte_lines()),
     };
 
     let mut header_nuon = Vec::new();
@@ -437,10 +363,7 @@ pub fn from_gfa_inner(
         vals: vec![
             header_nuon
                 .first()
-                .unwrap_or(&Value::String {
-                    val: "No header.".into(),
-                    span: call.head,
-                })
+                .unwrap_or(&call.head.with_string("No header."))
                 .clone(),
             Value::List {
                 vals: segments_nuon,

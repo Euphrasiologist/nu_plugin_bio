@@ -1,3 +1,4 @@
+use crate::bio_format::SpanExt;
 use noodles::{
     bam,
     sam::{self, alignment::Record, header::record::value::Map},
@@ -47,34 +48,16 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
             "sub_sort_order".into(),
         ],
         vals: vec![
-            Value::String {
-                val: header.version().to_string(),
-                span: call.head,
-            },
-            Value::String {
-                val: header
-                    .sort_order()
-                    // what's the default..?
-                    // if it's no good, we can always map -> string
-                    .unwrap_or_default()
-                    .to_string(),
-                span: call.head,
-            },
-            Value::String {
-                val: header
-                    .group_order()
-                    // what's the default? see above.
-                    .unwrap_or_default()
-                    .to_string(),
-                span: call.head,
-            },
-            Value::String {
-                val: header
-                    .subsort_order()
-                    .map(|e| e.to_string())
-                    .unwrap_or_else(|| "No subsort order.".into()),
-                span: call.head,
-            },
+            call.head.with_string(header.version()),
+            // what's the default..?
+            // if it's no good, we can always map -> string
+            call.head
+                .with_string(header.sort_order().unwrap_or_default()),
+            // what's the default? see above.
+            call.head
+                .with_string(header.group_order().unwrap_or_default()),
+            call.head
+                .with_string_or(header.subsort_order(), "No subsort order."),
         ],
         span: call.head,
     };
@@ -99,70 +82,23 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     "uri".into(),
                 ],
                 vals: vec![
-                    Value::String {
-                        val: name.to_string(),
-                        span: call.head,
-                    },
+                    call.head.with_string(name),
                     Value::Int {
                         val: usize::from(f.length()) as i64,
                         span: call.head,
                     },
-                    Value::String {
-                        val: f
-                            .alternative_locus()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No alternative locus.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .alternative_names()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No alternative names.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .assembly_id()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No assembly ID.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .description()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No description.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .md5_checksum()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No md5 checksum.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .species()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No species name.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .molecule_topology()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No molecule topology.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .uri()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No URI.".into()),
-                        span: call.head,
-                    },
+                    call.head
+                        .with_string_or(f.alternative_locus(), "No alternative locus."),
+                    call.head
+                        .with_string_or(f.alternative_names(), "No alternative names."),
+                    call.head.with_string_or(f.assembly_id(), "No assembly ID."),
+                    call.head.with_string_or(f.description(), "No description"),
+                    call.head
+                        .with_string_or(f.md5_checksum(), "No md5 checksum."),
+                    call.head.with_string_or(f.species(), "No species name."),
+                    call.head
+                        .with_string_or(f.molecule_topology(), "No molecule topology."),
+                    call.head.with_string_or(f.uri(), "No URI."),
                 ],
                 span: call.head,
             })
@@ -173,7 +109,7 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     // @RG
     let read_groups = h.read_groups();
     let read_groups_nuon = Value::Record {
-        cols: read_groups.keys().map(|e| e.to_string()).collect(),
+        cols: read_groups.keys().cloned().collect(),
         vals: read_groups
             .iter()
             .map(|(id, f)| Value::Record {
@@ -195,59 +131,16 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     "sample".into(),
                 ],
                 vals: vec![
-                    Value::String {
-                        val: id.clone(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .barcode()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No barcode.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .sequencing_center()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No sequencing center.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .description()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No description.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .flow_order()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No flow order.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .key_sequence()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No key sequence.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .library()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No library.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .program()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No program.".into()),
-                        span: call.head,
-                    },
+                    call.head.with_string(id),
+                    call.head.with_string_or(f.barcode(), "No barcode."),
+                    call.head
+                        .with_string_or(f.sequencing_center(), "No sequencing center."),
+                    call.head.with_string_or(f.description(), "No description."),
+                    call.head.with_string_or(f.flow_order(), "No flow order."),
+                    call.head
+                        .with_string_or(f.key_sequence(), "No key sequence."),
+                    call.head.with_string_or(f.library(), "No library."),
+                    call.head.with_string_or(f.program(), "No program."),
                     Value::Int {
                         val: f
                             .predicted_median_insert_size()
@@ -255,34 +148,12 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                             .unwrap_or(0),
                         span: call.head,
                     },
-                    Value::String {
-                        val: f
-                            .platform()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No platform.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .platform_model()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No platform model".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .platform_unit()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No platform unit.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .sample()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No sample.".into()),
-                        span: call.head,
-                    },
+                    call.head.with_string_or(f.platform(), "No platform."),
+                    call.head
+                        .with_string_or(f.platform_model(), "No platform model"),
+                    call.head
+                        .with_string_or(f.platform_unit(), "No platform unit."),
+                    call.head.with_string_or(f.sample(), "No sample."),
                 ],
                 span: call.head,
             })
@@ -293,7 +164,7 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     // @PG
     let programs = h.programs();
     let programs_nuon = Value::Record {
-        cols: programs.keys().map(|e| e.to_string()).collect(),
+        cols: programs.keys().cloned().collect(),
         vals: programs
             .iter()
             .map(|(id, f)| Value::Record {
@@ -306,45 +177,13 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
                     "version".into(),
                 ],
                 vals: vec![
-                    Value::String {
-                        val: id.clone(),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .name()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No name.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .command_line()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No command line.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .previous_id()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No previous ID.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .description()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No description.".into()),
-                        span: call.head,
-                    },
-                    Value::String {
-                        val: f
-                            .version()
-                            .map(|e| e.to_string())
-                            .unwrap_or_else(|| "No version.".into()),
-                        span: call.head,
-                    },
+                    call.head.with_string(id),
+                    call.head.with_string_or(f.name(), "No name."),
+                    call.head
+                        .with_string_or(f.command_line(), "No command line."),
+                    call.head.with_string_or(f.previous_id(), "No previous ID."),
+                    call.head.with_string_or(f.description(), "No description."),
+                    call.head.with_string_or(f.version(), "No version."),
                 ],
                 span: call.head,
             })
@@ -355,13 +194,7 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     // @CO
     let comments = h.comments();
     let comments_nuon = Value::List {
-        vals: comments
-            .iter()
-            .map(|e| Value::String {
-                val: e.clone(),
-                span: call.head,
-            })
-            .collect(),
+        vals: comments.iter().map(|e| call.head.with_string(e)).collect(),
         span: call.head,
     };
 
@@ -379,91 +212,34 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
 }
 
 /// Parse a SAM record, and append to a vector
-pub fn add_record(call: &EvaluatedCall, r: Record, vec_vals: &mut Vec<Value>) {
-    let read_name = match r.read_name() {
-        Some(r_n) => r_n.to_string(),
-        None => "No read name.".into(),
-    };
-
+pub fn create_record_values(call: &EvaluatedCall, r: Record) -> Vec<Value> {
     let flags = r.flags().bits();
-    let reference_sequence_id = match r.reference_sequence_id() {
-        Some(r_s_id) => r_s_id.to_string(),
-        None => "No reference sequence ID".into(),
-    };
-    let alignment_start = match r.alignment_start() {
-        Some(a_s) => a_s.to_string(),
-        None => "No alignment start".into(),
-    };
-    let mapping_quality = match r.mapping_quality() {
-        Some(m_q) => format!("{}", u8::from(m_q)),
-        None => "".to_string(),
-    };
-    let cigar = format!("{}", r.cigar());
-    let mate_reference_sequence_id = match r.mate_reference_sequence_id() {
-        Some(m_r_s) => format!("{}", m_r_s),
-        None => "No mate reference sequence ID".into(),
-    };
-    let mate_alignment_start = match r.mate_alignment_start() {
-        Some(m_a_s) => m_a_s.to_string(),
-        None => "No mate alignment start".into(),
-    };
-    let template_length = r.template_length();
+    let mapping_quality = r
+        .mapping_quality()
+        .map(|m_q| format!("{}", u8::from(m_q)))
+        .unwrap_or_default();
     let sequence: Vec<u8> = r.sequence().as_ref().iter().map(|e| u8::from(*e)).collect();
-    let quality_scores = r.quality_scores().to_string();
-    let data = r.data().to_string();
 
-    let values_to_extend: Vec<Value> = vec![
-        Value::String {
-            val: read_name,
-            span: call.head,
-        },
-        Value::String {
-            val: format!("{:#06x}", flags),
-            span: call.head,
-        },
-        Value::String {
-            val: reference_sequence_id,
-            span: call.head,
-        },
-        Value::String {
-            val: alignment_start,
-            span: call.head,
-        },
-        Value::String {
-            val: mapping_quality,
-            span: call.head,
-        },
-        Value::String {
-            val: cigar,
-            span: call.head,
-        },
-        Value::String {
-            val: mate_reference_sequence_id,
-            span: call.head,
-        },
-        Value::String {
-            val: mate_alignment_start,
-            span: call.head,
-        },
-        Value::Int {
-            val: template_length.into(),
-            span: call.head,
-        },
-        Value::String {
-            val: std::string::String::from_utf8(sequence).unwrap(),
-            span: call.head,
-        },
-        Value::String {
-            val: quality_scores,
-            span: call.head,
-        },
-        Value::String {
-            val: data,
-            span: call.head,
-        },
-    ];
-
-    vec_vals.extend_from_slice(&values_to_extend);
+    vec![
+        call.head.with_string_or(r.read_name(), "No read name."),
+        call.head.with_string(format!("{:#06x}", flags)),
+        call.head
+            .with_string_or(r.reference_sequence_id(), "No reference sequence ID"),
+        call.head
+            .with_string_or(r.alignment_start(), "No alignment start"),
+        call.head.with_string(mapping_quality),
+        call.head.with_string(r.cigar()),
+        call.head.with_string_or(
+            r.mate_reference_sequence_id(),
+            "No mate reference sequence ID",
+        ),
+        call.head
+            .with_string_or(r.mate_alignment_start(), "No mate alignment start"),
+        call.head.with_string(r.template_length()),
+        call.head.with_string(String::from_utf8(sequence).unwrap()),
+        call.head.with_string(r.quality_scores()),
+        call.head.with_string(r.data()),
+    ]
 }
 
 /// Parse a BAM file into a nushell structure.
@@ -481,16 +257,11 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
     };
 
     let mut reader = bam::Reader::new(stream.as_slice());
-    let raw_header = match reader.read_header() {
-        Ok(h) => h,
-        Err(err) => {
-            return Err(LabeledError {
-                label: "Could not read header.".into(),
-                msg: format!("error reading header at {}", err),
-                span: Some(call.head),
-            })
-        }
-    };
+    let raw_header = reader.read_header().map_err(|err| LabeledError {
+        label: "Could not read header.".into(),
+        msg: format!("error reading header at {}", err),
+        span: Some(call.head),
+    })?;
 
     // TODO: better error handling here.
     let header = if raw_header.is_empty() {
@@ -508,30 +279,22 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
         parse_header(call, &raw_header.parse().unwrap())
     };
 
-    let mut value_records = Vec::new();
+    let value_records = reader
+        .records()
+        .map(|record| {
+            let r = record.map_err(|e| LabeledError {
+                label: "Record reading failed.".into(),
+                msg: format!("cause of failure: {}", e),
+                span: Some(call.head),
+            })?;
 
-    for record in reader.records() {
-        let r = match record {
-            Ok(rec) => rec,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Record reading failed.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
-
-        let mut vec_vals = Vec::new();
-
-        add_record(call, r, &mut vec_vals);
-
-        value_records.push(Value::Record {
-            cols: BAM_COLUMNS.iter().map(|e| String::from(*e)).collect(),
-            vals: vec_vals,
-            span: call.head,
+            Ok(Value::Record {
+                cols: BAM_COLUMNS.iter().map(|e| e.to_string()).collect(),
+                vals: create_record_values(call, r),
+                span: call.head,
+            })
         })
-    }
+        .collect::<Result<Vec<_>, LabeledError>>()?;
 
     Ok(Value::Record {
         cols: vec!["header".into(), "body".into()],
@@ -557,29 +320,22 @@ pub fn from_sam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
     let header = reader.read_header().unwrap().parse().unwrap();
     let header_nuon = parse_header(call, &header);
 
-    let mut value_records = Vec::new();
+    let value_records = reader
+        .records(&header)
+        .map(|record| {
+            let r = record.map_err(|e| LabeledError {
+                label: "Record reading failed.".into(),
+                msg: format!("cause of failure: {}", e),
+                span: Some(call.head),
+            })?;
 
-    for record in reader.records(&header) {
-        let r = match record {
-            Ok(rec) => rec,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Record reading failed.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
-
-        let mut vec_vals = Vec::new();
-        add_record(call, r, &mut vec_vals);
-
-        value_records.push(Value::Record {
-            cols: BAM_COLUMNS.iter().map(|e| String::from(*e)).collect(),
-            vals: vec_vals,
-            span: call.head,
+            Ok(Value::Record {
+                cols: BAM_COLUMNS.iter().map(|e| e.to_string()).collect(),
+                vals: create_record_values(call, r),
+                span: call.head,
+            })
         })
-    }
+        .collect::<Result<Vec<_>, LabeledError>>()?;
 
     Ok(Value::Record {
         cols: vec!["header".into(), "body".into()],
