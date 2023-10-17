@@ -3,7 +3,7 @@
 print -e "Starting pipeline to generate test data."
 print -e ""
 
-print -e "Please make sure samtools, bgzip, minimap2, and bcftools are installed/in your PATH."
+print -e "Please make sure MBG, samtools, bgzip, minimap2, and bcftools are installed/in your PATH."
 print -e ""
 
 # samtools, bgzip, minimap2, bcftools
