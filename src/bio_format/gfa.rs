@@ -7,7 +7,7 @@ use gfa::{
     parser::GFAParser,
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{record, Value};
 use std::io::{BufRead, BufReader};
 
 use super::{Compression, SpanExt};
@@ -135,17 +135,10 @@ fn lines_to_nuon<R: BufRead>(
                             .map(|e| parse_optfieldval(e.clone(), call))
                             .collect();
 
-                        header_nuon.push(Value::Record {
-                            cols: vec!["version".into(), "optional_fields".into()],
-                            vals: vec![
-                                call.head.with_string_or(version, "No version specified."),
-                                Value::List {
-                                    vals: opts?,
-                                    span: call.head,
-                                },
-                            ],
-                            span: call.head,
-                        })
+                        header_nuon.push(Value::record (
+                            record! {"version" => call.head.with_string_or(version, "No version specified"),
+                            "optional_fields" => Value::list(opts?, call.head)},  call.head
+                        ))
                     }
                     Segment(s) => {
                         // parse as string
@@ -158,18 +151,14 @@ fn lines_to_nuon<R: BufRead>(
                         // parse as string
                         let seq = string_from_utf8(s.sequence, call, "segment sequence malformed")?;
 
-                        segments_nuon.push(Value::Record {
-                            cols: vec!["name".into(), "sequence".into(), "optional_fields".into()],
-                            vals: vec![
-                                call.head.with_string(name?),
-                                call.head.with_string(seq),
-                                Value::List {
-                                    vals: opts?,
-                                    span: call.head,
-                                },
-                            ],
-                            span: call.head,
-                        })
+                        segments_nuon.push(Value::record(
+                            record! {
+                            "name" => call.head.with_string(name?),
+                            "sequence" =>  call.head.with_string(seq),
+                            "optional_fields" => Value::list(opts?, call.head),
+                            },
+                            call.head,
+                        ))
                     }
                     Link(l) => {
                         let fs = string_from_utf8(l.from_segment, call, "from segment malformed")?;
@@ -182,28 +171,17 @@ fn lines_to_nuon<R: BufRead>(
                             .map(|e| parse_optfieldval(e.clone(), call))
                             .collect();
 
-                        links_nuon.push(Value::Record {
-                            cols: vec![
-                                "from_orient".into(),
-                                "to_orient".into(),
-                                "from_segment".into(),
-                                "to_segment".into(),
-                                "overlaps".into(),
-                                "optional_fields".into(),
-                            ],
-                            vals: vec![
-                                call.head.with_string(l.from_orient),
-                                call.head.with_string(l.to_orient),
-                                call.head.with_string(fs),
-                                call.head.with_string(ts),
-                                call.head.with_string(overlap),
-                                Value::List {
-                                    vals: opts?,
-                                    span: call.head,
-                                },
-                            ],
-                            span: call.head,
-                        })
+                        links_nuon.push(Value::record(
+                            record! {
+                                "from_orient" => call.head.with_string(l.from_orient),
+                                "to_orient" => call.head.with_string(l.to_orient),
+                                "from_segment" => call.head.with_string(fs),
+                                "to_segment" => call.head.with_string(ts),
+                                "overlaps" => call.head.with_string(overlap),
+                                "optional_fields" => Value::list(opts?, call.head),
+                            },
+                            call.head,
+                        ))
                     }
                     Containment(c) => {
                         let containment_name =
@@ -219,33 +197,18 @@ fn lines_to_nuon<R: BufRead>(
                             .map(|e| parse_optfieldval(e.clone(), call))
                             .collect();
 
-                        containments_nuon.push(Value::Record {
-                            cols: vec![
-                                "containment_name".into(),
-                                "containment_orient".into(),
-                                "container_name".into(),
-                                "container_orient".into(),
-                                "overlap".into(),
-                                "position".into(),
-                                "optional_fields".into(),
-                            ],
-                            vals: vec![
-                                call.head.with_string(containment_name?),
-                                call.head.with_string(c.contained_orient),
-                                call.head.with_string(container_name?),
-                                call.head.with_string(c.container_orient),
-                                call.head.with_string(overlap?),
-                                Value::Int {
-                                    val: position as i64,
-                                    span: call.head,
-                                },
-                                Value::List {
-                                    vals: opts?,
-                                    span: call.head,
-                                },
-                            ],
-                            span: call.head,
-                        })
+                        containments_nuon.push(Value::record(
+                            record! {
+                                "containment_name" => call.head.with_string(containment_name?),
+                                "containment_orient" => call.head.with_string(c.contained_orient),
+                                "container_name" => call.head.with_string(container_name?),
+                                "container_orient" => call.head.with_string(c.container_orient),
+                                "overlap" => call.head.with_string(overlap?),
+                                "position" => Value::int(position as i64, call.head),
+                                "optional_fields" => Value::list(opts?, call.head),
+                            },
+                            call.head,
+                        ))
                     }
                     Path(p) => {
                         let path_name = string_from_utf8(p.path_name, call, "malformed path name");
@@ -265,28 +228,15 @@ fn lines_to_nuon<R: BufRead>(
                             .map(|e| parse_optfieldval(e.clone(), call))
                             .collect();
 
-                        paths_nuon.push(Value::Record {
-                            cols: vec![
-                                "path_name".into(),
-                                "segment_names".into(),
-                                "overlaps".into(),
-                                "optional_fields".into(),
-                            ],
-                            vals: vec![
-                                call.head.with_string(path_name?),
-                                // probably should be a list...
-                                call.head.with_string(segment_names),
-                                Value::List {
-                                    vals: overlaps,
-                                    span: call.head,
-                                },
-                                Value::List {
-                                    vals: opts?,
-                                    span: call.head,
-                                },
-                            ],
-                            span: call.head,
-                        })
+                        paths_nuon.push(Value::record(
+                            record! {
+                                "path_name" => call.head.with_string(path_name?),
+                                "segment_names" => call.head.with_string(segment_names),
+                                "overlaps" => Value::list(overlaps, call.head),
+                                "optional_fields" => Value::list(opts?, call.head),
+                            },
+                            call.head,
+                        ))
                     }
                 }
             }
@@ -352,36 +302,14 @@ pub fn from_gfa_inner(
         )?,
     };
 
-    Ok(Value::Record {
-        cols: vec![
-            "header".into(),
-            "segments".into(),
-            "links".into(),
-            "containments".into(),
-            "paths".into(),
-        ],
-        vals: vec![
-            header_nuon
-                .first()
-                .unwrap_or(&call.head.with_string("No header."))
-                .clone(),
-            Value::List {
-                vals: segments_nuon,
-                span: call.head,
-            },
-            Value::List {
-                vals: links_nuon,
-                span: call.head,
-            },
-            Value::List {
-                vals: containments_nuon,
-                span: call.head,
-            },
-            Value::List {
-                vals: paths_nuon,
-                span: call.head,
-            },
-        ],
-        span: call.head,
-    })
+    Ok(Value::record(
+        record! {
+            "header" => header_nuon.first().unwrap_or(&call.head.with_string("No header")).clone(),
+            "segments" => Value::list(segments_nuon, call.head),
+            "links" => Value::list(links_nuon, call.head),
+            "containments" => Value::list(containments_nuon, call.head),
+            "paths" => Value::list(paths_nuon, call.head)
+        },
+        call.head,
+    ))
 }

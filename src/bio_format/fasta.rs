@@ -49,11 +49,11 @@ fn iterate_fastq_records<R: BufRead>(
 
         vec_vals.push(call.head.with_string_from_utf8(r.sequence()));
 
-        value_records.push(Value::Record {
-            cols: cols.clone(),
-            vals: vec_vals,
-            span: call.head,
-        })
+        let mut tmp_record = nu_protocol::Record::new();
+        for (col, val) in cols.clone().iter().zip(vec_vals) {
+            tmp_record.push(col, val);
+        }
+        value_records.push(Value::record(tmp_record, call.head))
     }
 
     Ok(())
@@ -151,11 +151,11 @@ fn iterate_fasta_records<R: BufRead>(
 
         vec_vals.push(call.head.with_string_from_utf8(r.sequence().as_ref()));
 
-        value_records.push(Value::Record {
-            cols: cols.clone(),
-            vals: vec_vals,
-            span: call.head,
-        })
+        let mut tmp_record = nu_protocol::Record::new();
+        for (col, val) in cols.clone().iter().zip(vec_vals) {
+            tmp_record.push(col, val);
+        }
+        value_records.push(Value::record(tmp_record, call.head))
     }
     Ok(())
 }
@@ -166,6 +166,7 @@ pub fn from_fasta_inner(
     input: &Value,
     gz: Compression,
 ) -> Result<Vec<Value>, LabeledError> {
+    dbg!("from_fasta_inner");
     // parse description flag.
     let description = call.has_flag("description");
 

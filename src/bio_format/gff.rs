@@ -1,7 +1,7 @@
-/// The VCF format
+/// The GFF format
 use noodles::gff;
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{Record, Value};
 
 use super::SpanExt;
 
@@ -27,14 +27,8 @@ fn add_record(call: &EvaluatedCall, r: gff::Record, vec_vals: &mut Vec<Value>) {
         call.head.with_string(r.reference_sequence_name()),
         call.head.with_string(r.source()),
         call.head.with_string(r.ty()),
-        Value::Int {
-            val: start as i64,
-            span: call.head,
-        },
-        Value::Int {
-            val: end as i64,
-            span: call.head,
-        },
+        Value::int(start as i64, call.head),
+        Value::int(end as i64, call.head),
         call.head.with_string_or(r.score(), ""),
         call.head.with_string(r.strand()),
         call.head.with_string_or(r.phase(), ""),
@@ -68,11 +62,10 @@ pub fn from_gff_inner(call: &EvaluatedCall, input: &Value) -> Result<Vec<Value>,
         let mut vec_vals = Vec::new();
         add_record(call, r, &mut vec_vals);
 
-        value_records.push(Value::Record {
-            cols: GFF_COLUMNS.iter().map(|e| String::from(*e)).collect(),
-            vals: vec_vals,
-            span: call.head,
-        })
+        let record_inner =
+            Record::from_iter(GFF_COLUMNS.iter().map(|e| e.to_string()).zip(vec_vals));
+
+        value_records.push(Value::record(record_inner, call.head))
     }
 
     Ok(value_records)

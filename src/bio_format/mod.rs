@@ -28,17 +28,11 @@ pub trait SpanExt {
 
 impl SpanExt for Span {
     fn with_string<S: ToString>(&self, s: S) -> Value {
-        Value::String {
-            val: s.to_string(),
-            span: *self,
-        }
+        Value::string(s.to_string(), *self)
     }
 
     fn with_string_or<S: ToString>(&self, s: Option<S>, default: &str) -> Value {
-        Value::String {
-            val: s.map(|s| s.to_string()).unwrap_or(default.into()),
-            span: *self,
-        }
+        Value::string(s.map(|s| s.to_string()).unwrap_or(default.into()), *self)
     }
     fn with_string_from_utf8(&self, s: &[u8]) -> Value {
         // TODO: remove this unwrap

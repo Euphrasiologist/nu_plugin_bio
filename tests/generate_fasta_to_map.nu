@@ -46,7 +46,7 @@ for s in 1..100 {
     let ri_2 = (random integer $ri_1..$genome_length)
 
     # get the subsequence
-    let subseq = ($genome | str substring $"($ri_1),($ri_2)")
+    let subseq = ($genome | str substring $ri_1..$ri_2)
 
     # random splitter to use
     let split_index = (random integer (0..(($splitters | length) - 1)))

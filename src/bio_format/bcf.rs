@@ -4,7 +4,7 @@ use noodles::{
     bgzf, vcf,
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{record, Record, Value};
 
 use crate::bio_format::Compression;
 use std::io::{BufRead, BufReader};
@@ -56,72 +56,72 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
     let file_format = call.head.with_string(h.file_format());
     let infos = h.infos();
 
+    let infos_inner = Record::from_iter(infos.keys().map(|e| e.to_string()).zip(
+        infos.values().map(|f| {
+            Value::record(
+                record! {
+                "number" => call.head.with_string(f.number()),
+                "type" => call.head.with_string(f.ty()),
+                "description" => call.head.with_string(f.description()),
+                },
+                call.head,
+            )
+        }),
+    ));
+
     // add infos into a record structure
-    let infos_nuon = Value::Record {
-        cols: infos.keys().map(|e| e.to_string()).collect(),
-        vals: infos
-            .values()
-            .map(|f| Value::Record {
-                cols: vec!["number".into(), "type".into(), "description".into()],
-                vals: vec![
-                    call.head.with_string(f.number()),
-                    call.head.with_string(f.ty()),
-                    call.head.with_string(f.description()),
-                ],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+    let infos_nuon = Value::record(infos_inner, call.head);
 
     // the filters
     let filters = h.filters();
-    let filters_nuon = Value::Record {
-        cols: filters.keys().map(|e| e.to_string()).collect(),
-        vals: filters
-            .values()
-            .map(|f| Value::Record {
-                cols: vec!["description".into()],
-                vals: vec![call.head.with_string(f.description())],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+
+    let filters_inner = Record::from_iter(filters.keys().map(|e| e.to_string()).zip(
+        filters.values().map(|f| {
+            Value::record(
+                record! {
+                      "description" => call.head.with_string(f.description())
+
+                },
+                call.head,
+            )
+        }),
+    ));
+
+    let filters_nuon = Value::record(filters_inner, call.head);
 
     // the formats
     let formats = h.formats();
-    let formats_nuon = Value::Record {
-        cols: formats.keys().map(|e| e.to_string()).collect(),
-        vals: formats
-            .values()
-            .map(|f| Value::Record {
-                cols: vec!["number".into(), "type".into(), "description".into()],
-                vals: vec![
-                    call.head.with_string(f.number()),
-                    call.head.with_string(f.ty()),
-                    call.head.with_string(f.description()),
-                ],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+
+    let formats_inner = Record::from_iter(formats.keys().map(|e| e.to_string()).zip(
+        formats.values().map(|f| {
+            Value::record(
+                record! {
+                    "number" => call.head.with_string(f.number()),
+                    "type" => call.head.with_string(f.ty()),
+                    "description" => call.head.with_string(f.description())
+                },
+                call.head,
+            )
+        }),
+    ));
+
+    let formats_nuon = Value::record(formats_inner, call.head);
 
     // alternative alleles
     let alt_alleles = h.alternative_alleles();
-    let alt_alleles_nuon = Value::Record {
-        cols: alt_alleles.keys().map(|e| e.to_string()).collect(),
-        vals: alt_alleles
-            .values()
-            .map(|f| Value::Record {
-                cols: vec!["description".into()],
-                vals: vec![call.head.with_string(f.description())],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+
+    let alt_alleles_inner = Record::from_iter(alt_alleles.keys().map(|e| e.to_string()).zip(
+        alt_alleles.values().map(|f| {
+            Value::record(
+                record! {
+                    "description" => call.head.with_string(f.description())
+                },
+                call.head,
+            )
+        }),
+    ));
+
+    let alt_alleles_nuon = Value::record(alt_alleles_inner, call.head);
 
     // assembly
     let assembly = call
@@ -130,49 +130,43 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
 
     // contigs
     let contigs = h.contigs();
-    let contigs_nuon = Value::Record {
-        cols: contigs.keys().map(|e| e.to_string()).collect(),
-        vals: contigs
-            .values()
-            .map(|f| {
-                let mut cols = vec!["length".into()];
-                cols.extend(f.other_fields().keys().map(|e| e.to_string()));
 
-                let mut vals = vec![Value::Int {
-                    val: f.length().unwrap_or(0) as i64,
-                    span: call.head,
-                }];
+    let contigs_inner = Record::from_iter(contigs.keys().map(|e| e.to_string()).zip(
+        contigs.values().map(|f| {
+            let mut cols = vec!["length".into()];
+            cols.extend(f.other_fields().keys().map(|e| e.to_string()));
 
-                vals.extend(f.other_fields().values().map(|e| call.head.with_string(e)));
+            let mut vals = vec![Value::int(f.length().unwrap_or(0) as i64, call.head)];
 
-                Value::Record {
-                    cols,
-                    vals,
-                    span: call.head,
-                }
-            })
-            .collect(),
-        span: call.head,
-    };
+            vals.extend(f.other_fields().values().map(|e| call.head.with_string(e)));
+
+            let contig_vals_inner = Record::from_iter(cols.into_iter().zip(vals.into_iter()));
+
+            Value::record(contig_vals_inner, call.head)
+        }),
+    ));
+
+    let contigs_nuon = Value::record(contigs_inner, call.head);
 
     // metadata
     let meta = h.meta();
-    let meta_nuon = Value::Record {
-        cols: meta.keys().map(|e| e.to_string()).collect(),
-        vals: meta
-            .values()
-            .map(|f| Value::Record {
-                cols: f.values().to_vec(),
-                vals: f
-                    .values()
-                    .iter()
-                    .map(|e| call.head.with_string(e))
-                    .collect(),
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+
+    // this is horrible, sorry.
+    let meta_inner = Record::from_iter(meta.keys().map(|e| e.to_string()).zip(meta.values().map(
+        |f| {
+            // &Map<Meta> is of unknown length, so let's use Record::from_iter() again
+            let meta_inner_record = Record::from_iter(
+                f.values()
+                    .to_vec()
+                    .into_iter()
+                    .zip(f.values().iter().map(|e| call.head.with_string(e))),
+            );
+
+            Value::record(meta_inner_record, call.head)
+        },
+    )));
+
+    let meta_nuon = Value::record(meta_inner, call.head);
 
     // don't know how to parse Pedigrees currently?
     let pedigree_nuon = call
@@ -180,20 +174,18 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
         .with_string_or(h.pedigree_db(), "No pedigree database.");
 
     // sample names
-    let sample_names_nuon = Value::List {
-        vals: h
-            .sample_names()
+    let sample_names_nuon = Value::list(
+        h.sample_names()
             .iter()
             .map(|e| call.head.with_string(e))
             .collect(),
-        span: call.head,
-    };
+        call.head,
+    );
 
     // TODO: I've skipped other records for the moment.
     // return the big record
-    Value::Record {
-        cols: HEADER_COLUMNS.iter().map(|e| e.to_string()).collect(),
-        vals: vec![
+    Value::record(
+        Record::from_iter(HEADER_COLUMNS.iter().map(|e| e.to_string()).zip(vec![
             file_format,
             infos_nuon,
             filters_nuon,
@@ -204,9 +196,9 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
             meta_nuon,
             pedigree_nuon,
             sample_names_nuon,
-        ],
-        span: call.head,
-    }
+        ])),
+        call.head,
+    )
 }
 
 /// Add a VCF record to the vector.
@@ -217,14 +209,8 @@ fn add_record(call: &EvaluatedCall, r: vcf::Record, vec_vals: &mut Vec<Value>) {
 
     let values_to_extend: Vec<Value> = vec![
         call.head.with_string(r.chromosome()),
-        Value::Int {
-            val: pos as i64,
-            span: call.head,
-        },
-        Value::Int {
-            val: rlen as i64,
-            span: call.head,
-        },
+        Value::int(pos as i64, call.head),
+        Value::int(rlen as i64, call.head),
         call.head.with_string_or(r.quality_score(), ""),
         call.head.with_string(r.ids()),
         call.head.with_string(r.reference_bases()),
@@ -318,11 +304,10 @@ fn iterate_bcf_records<R: BufRead>(
         let mut vec_vals = Vec::new();
         add_record(call, v_r, &mut vec_vals);
 
-        value_records.push(Value::Record {
-            cols: VCF_COLUMNS.iter().map(|e| String::from(*e)).collect(),
-            vals: vec_vals,
-            span: call.head,
-        })
+        let record_inner =
+            Record::from_iter(VCF_COLUMNS.iter().map(|e| e.to_string()).zip(vec_vals));
+
+        value_records.push(Value::record(record_inner, call.head))
     }
 
     Ok(())
@@ -336,7 +321,7 @@ pub fn from_bcf_inner(
 ) -> Result<Value, LabeledError> {
     // match on file type
     let stream = match input {
-        Value::Binary { val, span: _ } => val,
+        Value::Binary { val, .. } => val,
         other => {
             return Err(LabeledError {
                 label: "Input should be binary.".into(),
@@ -370,17 +355,13 @@ pub fn from_bcf_inner(
         }
     }
 
-    Ok(Value::Record {
-        cols: vec!["header".into(), "body".into()],
-        vals: vec![
-            header_nuon,
-            Value::List {
-                vals: value_records,
-                span: call.head,
-            },
-        ],
-        span: call.head,
-    })
+    Ok(Value::record(
+        record! {
+            "header" => header_nuon,
+            "body" => Value::list(value_records, call.head),
+        },
+        call.head,
+    ))
 }
 
 /// Read a VCF header and return the header, stringmaps, and also the header in nuon format.
@@ -443,11 +424,10 @@ fn iterate_vcf_records<R: BufRead>(
         let mut vec_vals = Vec::new();
         add_record(call, r, &mut vec_vals);
 
-        value_records.push(Value::Record {
-            cols: VCF_COLUMNS.iter().map(|e| String::from(*e)).collect(),
-            vals: vec_vals,
-            span: call.head,
-        })
+        let vec_vals_inner =
+            Record::from_iter(VCF_COLUMNS.iter().map(|e| e.to_string()).zip(vec_vals));
+
+        value_records.push(Value::record(vec_vals_inner, call.head))
     }
 
     Ok(())
@@ -496,15 +476,11 @@ pub fn from_vcf_inner(
         }
     }
 
-    Ok(Value::Record {
-        cols: vec!["header".into(), "body".into()],
-        vals: vec![
-            header_nuon,
-            Value::List {
-                vals: value_records,
-                span: call.head,
-            },
-        ],
-        span: call.head,
-    })
+    Ok(Value::record(
+        record! {
+            "header" => header_nuon,
+            "body" => Value::list(value_records, call.head),
+        },
+        call.head,
+    ))
 }

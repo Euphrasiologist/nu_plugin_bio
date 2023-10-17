@@ -2,7 +2,7 @@
 use noodles::cram;
 use noodles::sam;
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{record, Record, Value};
 
 use crate::bio_format::bam::{create_record_values, parse_header, BAM_COLUMNS};
 // TODO: also allow the reference to be passed, so we can view the alignment sequences?
@@ -11,7 +11,7 @@ use crate::bio_format::bam::{create_record_values, parse_header, BAM_COLUMNS};
 pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
     // match on file type
     let stream = match input {
-        Value::Binary { val, span: _ } => val,
+        Value::Binary { val, .. } => val,
         other => {
             return Err(LabeledError {
                 label: "Input should be binary.".into(),
@@ -68,24 +68,19 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Lab
                 let r = r.try_into_alignment_record(&header).unwrap();
                 let vec_vals = create_record_values(call, r);
 
-                value_records.push(Value::Record {
-                    cols: BAM_COLUMNS.iter().map(|e| String::from(*e)).collect(),
-                    vals: vec_vals,
-                    span: call.head,
-                })
+                let records_inner =
+                    Record::from_iter(BAM_COLUMNS.iter().map(|e| e.to_string()).zip(vec_vals));
+
+                value_records.push(Value::record(records_inner, call.head))
             }
         }
     }
 
-    Ok(Value::Record {
-        cols: vec!["header".into(), "body".into()],
-        vals: vec![
-            header_nuon,
-            Value::List {
-                vals: value_records,
-                span: call.head,
-            },
-        ],
-        span: call.head,
-    })
+    Ok(Value::record(
+        record! {
+            "header" => header_nuon,
+            "body" => Value::list(value_records, call.head)
+        },
+        call.head,
+    ))
 }

@@ -1,10 +1,10 @@
 use crate::bio_format::SpanExt;
 use noodles::{
     bam,
-    sam::{self, alignment::Record, header::record::value::Map},
+    sam::{self, alignment::Record as SAMRecord, header::record::value::Map},
 };
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{record, Record, Value};
 
 /// Columns in a BAM/SAM file
 pub const BAM_COLUMNS: &[&str] = &[
@@ -40,179 +40,114 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
     let default_map = Map::default();
     let header = header_op.unwrap_or(&default_map);
 
-    let header_nuon = Value::Record {
-        cols: vec![
-            "version".into(),
-            "sorting_order".into(),
-            "grouping".into(),
-            "sub_sort_order".into(),
-        ],
-        vals: vec![
-            call.head.with_string(header.version()),
-            // what's the default..?
-            // if it's no good, we can always map -> string
-            call.head
-                .with_string(header.sort_order().unwrap_or_default()),
-            // what's the default? see above.
-            call.head
-                .with_string(header.group_order().unwrap_or_default()),
-            call.head
-                .with_string_or(header.subsort_order(), "No subsort order."),
-        ],
-        span: call.head,
-    };
+    let header_nuon = Value::record(
+        record!(
+        "version" => call.head.with_string(header.version()),
+        // what's the default..?
+        // if it's no good, we can always map -> string
+        "sorting_order" => call.head.with_string(header.sort_order().unwrap_or_default()),
+        "grouping" => call.head.with_string(header.group_order().unwrap_or_default()),
+        "sub_sort_order" => call.head.with_string_or(header.subsort_order(), "No subsort order.")
+        ),
+        call.head,
+    );
 
     // @SQ.
     let reference_sequences = h.reference_sequences();
-    let reference_sequences_nuon = Value::Record {
+    let reference_sequences_nuon = Value::record(Record {
         cols: reference_sequences.keys().map(|e| e.to_string()).collect(),
         vals: reference_sequences
             .iter()
-            .map(|(name, f)| Value::Record {
-                cols: vec![
-                    "sequence_name".into(),
-                    "sequence_length".into(),
-                    "alternate_locus".into(),
-                    "alternate_names".into(),
-                    "assembly_id".into(),
-                    "description".into(),
-                    "md5".into(),
-                    "species".into(),
-                    "molecule_topology".into(),
-                    "uri".into(),
-                ],
-                vals: vec![
-                    call.head.with_string(name),
-                    Value::Int {
-                        val: usize::from(f.length()) as i64,
-                        span: call.head,
-                    },
-                    call.head
-                        .with_string_or(f.alternative_locus(), "No alternative locus."),
-                    call.head
-                        .with_string_or(f.alternative_names(), "No alternative names."),
-                    call.head.with_string_or(f.assembly_id(), "No assembly ID."),
-                    call.head.with_string_or(f.description(), "No description"),
-                    call.head
-                        .with_string_or(f.md5_checksum(), "No md5 checksum."),
-                    call.head.with_string_or(f.species(), "No species name."),
-                    call.head
-                        .with_string_or(f.molecule_topology(), "No molecule topology."),
-                    call.head.with_string_or(f.uri(), "No URI."),
-                ],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+            .map(|(name, f)| Value::record(record! {
+                    "sequence_name" => call.head.with_string(name),
+                    "sequence_length" => Value::int(usize::from(f.length()) as i64, call.head),
+                    "alternate_locus" => call.head.with_string_or(f.alternative_locus(), "No alternative locus."),
+                    "alternate_names" => call.head.with_string_or(f.alternative_names(), "No alternative names."),
+                    "assembly_id" => call.head.with_string_or(f.assembly_id(), "No assembly ID."),
+                    "description" => call.head.with_string_or(f.description(), "No description"),
+                    "md5" => call.head.with_string_or(f.md5_checksum(), "No md5 checksum"),
+                    "species" => call.head.with_string_or(f.species(), "No species name"),
+                    "molecule_topology" => call.head.with_string_or(f.molecule_topology(), "No molecule topology"),
+                    "uri" => call.head.with_string_or(f.uri(), "No URI"),
+                }, call.head)
+            )
+            .collect() },
+        call.head
+    );
 
     // @RG
     let read_groups = h.read_groups();
-    let read_groups_nuon = Value::Record {
+    let read_groups_nuon = Value::record(Record {
         cols: read_groups.keys().cloned().collect(),
         vals: read_groups
             .iter()
-            .map(|(id, f)| Value::Record {
-                cols: vec![
-                    "id".into(),
-                    "barcode".into(),
-                    "sequencing_center".into(),
-                    "description".into(),
+            .map(|(id, f)| Value::record(record! {
+                    "id" => call.head.with_string(id),
+                    "barcode" => call.head.with_string_or(f.barcode(), "No barcode"),
+                    "sequencing_center" => call.head.with_string_or(f.sequencing_center(), "No sequencing center"),
+                    "description" => call.head.with_string_or(f.description(), "No description"),
                     // no date?
-                    // "date".into(),
-                    "flow_order".into(),
-                    "key_sequence".into(),
-                    "library".into(),
-                    "program".into(),
-                    "predicted_insert_size".into(),
-                    "platform".into(), // CAPILLARY, DNBSEQ (MGI/BGI), ELEMENT, HELICOS, ILLUMINA, IONTORRENT, LS454, ONT (Oxford Nanopore), PACBIO (Pacific Biosciences), SOLID, and ULTIMA
-                    "platform_model".into(),
-                    "platform_unit".into(),
-                    "sample".into(),
-                ],
-                vals: vec![
-                    call.head.with_string(id),
-                    call.head.with_string_or(f.barcode(), "No barcode."),
+                    // "date",
+                    "flow_order" => call.head.with_string_or(f.flow_order(), "No flow order"),
+                    "key_sequence" => call.head.with_string_or(f.key_sequence(), "No key sequence"),
+                    "library" => call.head.with_string_or(f.library(), "No library"),
+                    "program" => call.head.with_string_or(f.program(), "No program"),
+                    "platform" => call.head.with_string_or(f.platform(), "No platform"),
+                    "predicted_insert_size" => Value::int(
+                         f.predicted_median_insert_size()
+                                .map(|e| e as i64)
+                                .unwrap_or(0),
                     call.head
-                        .with_string_or(f.sequencing_center(), "No sequencing center."),
-                    call.head.with_string_or(f.description(), "No description."),
-                    call.head.with_string_or(f.flow_order(), "No flow order."),
-                    call.head
-                        .with_string_or(f.key_sequence(), "No key sequence."),
-                    call.head.with_string_or(f.library(), "No library."),
-                    call.head.with_string_or(f.program(), "No program."),
-                    Value::Int {
-                        val: f
-                            .predicted_median_insert_size()
-                            .map(|e| e as i64)
-                            .unwrap_or(0),
-                        span: call.head,
-                    },
-                    call.head.with_string_or(f.platform(), "No platform."),
-                    call.head
-                        .with_string_or(f.platform_model(), "No platform model"),
-                    call.head
-                        .with_string_or(f.platform_unit(), "No platform unit."),
-                    call.head.with_string_or(f.sample(), "No sample."),
-                ],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+                ), // CAPILLARY, DNBSEQ (MGI/BGI), ELEMENT, HELICOS, ILLUMINA, IONTORRENT, LS454, ONT (Oxford Nanopore), PACBIO (Pacific Biosciences), SOLID, and ULTIMA
+                    "platform_model" => call.head.with_string_or(f.platform_model(), "No platform model"),
+                    "platform_unit" => call.head.with_string_or(f.platform_unit(), "No platform unit"),
+                    "sample" => call.head.with_string_or(f.sample(), "No sample"),
+                }, call.head
+            ))
+            .collect() },
+         call.head,
+    );
 
     // @PG
     let programs = h.programs();
-    let programs_nuon = Value::Record {
+    let programs_nuon = Value::record(Record {
         cols: programs.keys().cloned().collect(),
         vals: programs
             .iter()
-            .map(|(id, f)| Value::Record {
-                cols: vec![
-                    "id".into(),
-                    "name".into(),
-                    "command_line".into(),
-                    "previous_id".into(),
-                    "description".into(),
-                    "version".into(),
-                ],
-                vals: vec![
-                    call.head.with_string(id),
-                    call.head.with_string_or(f.name(), "No name."),
-                    call.head
-                        .with_string_or(f.command_line(), "No command line."),
-                    call.head.with_string_or(f.previous_id(), "No previous ID."),
-                    call.head.with_string_or(f.description(), "No description."),
-                    call.head.with_string_or(f.version(), "No version."),
-                ],
-                span: call.head,
-            })
-            .collect(),
-        span: call.head,
-    };
+            .map(|(id, f)| Value::record(record! {
+                    "id" => call.head.with_string(id),
+                    "name" => call.head.with_string_or(f.name(), "No name"),
+                    "command_line" => call.head.with_string_or(f.command_line(), "No command line"),
+                    "previous_id" => call.head.with_string_or(f.previous_id(), "No previous ID"),
+                    "description" => call.head.with_string_or(f.description(), "No description"),
+                    "version" => call.head.with_string_or(f.version(), "No version"),
+    }, call.head
+            ))
+            .collect() },
+        call.head,
+    );
 
     // @CO
     let comments = h.comments();
-    let comments_nuon = Value::List {
-        vals: comments.iter().map(|e| call.head.with_string(e)).collect(),
-        span: call.head,
-    };
+    let comments_nuon = Value::list(
+        comments.iter().map(|e| call.head.with_string(e)).collect(),
+        call.head,
+    );
 
-    Value::Record {
-        cols: HEADER_COLUMNS.iter().map(|e| e.to_string()).collect(),
-        vals: vec![
-            header_nuon,
-            reference_sequences_nuon,
-            read_groups_nuon,
-            programs_nuon,
-            comments_nuon,
-        ],
-        span: call.head,
-    }
+    Value::record(
+        record! {
+        HEADER_COLUMNS[0] => header_nuon,
+        HEADER_COLUMNS[1] =>    reference_sequences_nuon,
+        HEADER_COLUMNS[2] =>   read_groups_nuon,
+        HEADER_COLUMNS[3] =>    programs_nuon,
+        HEADER_COLUMNS[4] => comments_nuon,
+        },
+        call.head,
+    )
 }
 
 /// Parse a SAM record, and append to a vector
-pub fn create_record_values(call: &EvaluatedCall, r: Record) -> Vec<Value> {
+pub fn create_record_values(call: &EvaluatedCall, r: SAMRecord) -> Vec<Value> {
     let flags = r.flags().bits();
     let mapping_quality = r
         .mapping_quality()
@@ -246,7 +181,7 @@ pub fn create_record_values(call: &EvaluatedCall, r: Record) -> Vec<Value> {
 pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
     // match on file type
     let stream = match input {
-        Value::Binary { val, span: _ } => val,
+        Value::Binary { val, .. } => val,
         other => {
             return Err(LabeledError {
                 label: "Input should be binary.".into(),
@@ -288,25 +223,24 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                 span: Some(call.head),
             })?;
 
-            Ok(Value::Record {
-                cols: BAM_COLUMNS.iter().map(|e| e.to_string()).collect(),
-                vals: create_record_values(call, r),
-                span: call.head,
-            })
+            let inner_record = Record::from_iter(
+                BAM_COLUMNS
+                    .iter()
+                    .map(|e| e.to_string())
+                    .zip(create_record_values(call, r)),
+            );
+
+            Ok(Value::record(inner_record, call.head))
         })
         .collect::<Result<Vec<_>, LabeledError>>()?;
 
-    Ok(Value::Record {
-        cols: vec!["header".into(), "body".into()],
-        vals: vec![
-            header,
-            Value::List {
-                vals: value_records,
-                span: call.head,
-            },
-        ],
-        span: call.head,
-    })
+    Ok(Value::record(
+        record! {
+            "header" => header,
+            "body" => Value::list(value_records, call.head)
+        },
+        call.head,
+    ))
 }
 
 /// Parse a SAM file into a nushell structure.
@@ -329,23 +263,22 @@ pub fn from_sam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
                 span: Some(call.head),
             })?;
 
-            Ok(Value::Record {
-                cols: BAM_COLUMNS.iter().map(|e| e.to_string()).collect(),
-                vals: create_record_values(call, r),
-                span: call.head,
-            })
+            let inner_record = Record::from_iter(
+                BAM_COLUMNS
+                    .iter()
+                    .map(|e| e.to_string())
+                    .zip(create_record_values(call, r)),
+            );
+
+            Ok(Value::record(inner_record, call.head))
         })
         .collect::<Result<Vec<_>, LabeledError>>()?;
 
-    Ok(Value::Record {
-        cols: vec!["header".into(), "body".into()],
-        vals: vec![
-            header_nuon,
-            Value::List {
-                vals: value_records,
-                span: call.head,
-            },
-        ],
-        span: call.head,
-    })
+    Ok(Value::record(
+        record! {
+            "header" => header_nuon,
+            "body" => Value::list(value_records, call.head)
+        },
+        call.head,
+    ))
 }

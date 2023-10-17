@@ -21,10 +21,13 @@ impl Bio {
         gz: Compression,
     ) -> Result<Value, LabeledError> {
         let value_records = from_fasta_inner(call, input, gz)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+
+        Ok(Value::list(value_records, call.head))
+        // Ok(
+        //     Value::List {
+        //     vals: value_records,
+        //     span: call.head,
+        // })
     }
     /// A minimal working example of parsing a fastq into Nushell.
     pub fn from_fastq(
@@ -34,10 +37,7 @@ impl Bio {
         gz: Compression,
     ) -> Result<Value, LabeledError> {
         let value_records = from_fastq_inner(call, input, gz)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        Ok(Value::list(value_records, call.head))
     }
 
     /// These B(S)AM functions are quite slow at the moment.
@@ -76,10 +76,7 @@ impl Bio {
     /// Parse a GFF.
     pub fn from_gff(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
         let value_records = from_gff_inner(call, input)?;
-        Ok(Value::List {
-            vals: value_records,
-            span: call.head,
-        })
+        Ok(Value::list(value_records, call.head))
     }
 
     /// Parse a GFA.
@@ -94,9 +91,6 @@ impl Bio {
 
     /// Parse a BED.
     pub fn from_bed(&self, call: &EvaluatedCall, input: Value) -> Result<Value, LabeledError> {
-        from_bed_inner(call, input).map(|e| Value::List {
-            vals: e,
-            span: call.head,
-        })
+        from_bed_inner(call, input).map(|e| Value::list(e, call.head))
     }
 }

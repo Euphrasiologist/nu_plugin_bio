@@ -5,11 +5,11 @@ repository = "https://github.com/"
 edition = "2021"
 license = "MIT"
 name = "nu_plugin_bio"
-version = "0.76.0"
+version = "0.85.0"
 
 [dependencies]
-nu-plugin = { version = "0.76.0" }
-nu-protocol = { version = "0.76.0", features = ["plugin"] }
+nu-plugin = { version = "0.85.0" }
+nu-protocol = { version = "0.85.0", features = ["plugin"] }
 # work from repo, as there are bug fixes in there which I raised, and are now fixed.
 noodles = { version = "0.32.0", features = [
     "fasta",

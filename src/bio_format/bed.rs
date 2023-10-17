@@ -1,6 +1,6 @@
 use noodles::bed;
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{Record, Value};
 
 use super::SpanExt;
 
@@ -44,24 +44,13 @@ pub fn from_bed_inner(call: &EvaluatedCall, input: Value) -> Result<Vec<Value>, 
 
         row.push(call.head.with_string(record.reference_sequence_name()));
         let start: usize = record.start_position().into();
-        row.push(Value::Int {
-            val: start as i64,
-            span: call.head,
-        });
+        row.push(Value::int(start as i64, call.head));
         let end: usize = record.end_position().into();
-        row.push(Value::Int {
-            val: end as i64,
-            span: call.head,
-        });
+        row.push(Value::int(end as i64, call.head));
 
-        records.push(Value::Record {
-            cols: BED_COLUMNS
-                .iter()
-                .map(|e| e.to_string())
-                .collect::<Vec<String>>(),
-            vals: row,
-            span: call.head,
-        });
+        let record_inner = Record::from_iter(BED_COLUMNS.iter().map(|e| e.to_string()).zip(row));
+
+        records.push(Value::record(record_inner, call.head))
     }
 
     Ok(records)
