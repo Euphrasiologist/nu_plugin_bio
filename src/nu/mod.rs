@@ -64,6 +64,8 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
+            PluginSignature::build("to fasta")
+                .usage("Print a parsed fasta object to a string"),
             PluginSignature::build("from fq")
                 .usage("Parse a fastq file.\nReturns a table of ID's and sequences.")
                 .switch(
@@ -141,6 +143,7 @@ impl Plugin for Bio {
             "from fa.gz" => self.from_fasta(call, input, Compression::Gzipped),
             "from fastq.gz" => self.from_fastq(call, input, Compression::Gzipped),
             "from fq.gz" => self.from_fastq(call, input, Compression::Gzipped),
+            "to fasta" => self.to_fasta(call, input),
             "from bam" => self.from_bam(call, input),
             "from sam" => self.from_sam(call, input),
             "from cram" => self.from_cram(call, input),

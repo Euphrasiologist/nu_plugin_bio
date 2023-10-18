@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader};
 /// The fasta format
 use noodles::{bgzf, fasta, fastq};
 use nu_plugin::{EvaluatedCall, LabeledError};
-use nu_protocol::Value;
+use nu_protocol::{ShellError, Value};
 
 use crate::bio_format::{Compression, SpanExt};
 
@@ -166,7 +166,6 @@ pub fn from_fasta_inner(
     input: &Value,
     gz: Compression,
 ) -> Result<Vec<Value>, LabeledError> {
-    dbg!("from_fasta_inner");
     // parse description flag.
     let description = call.has_flag("description");
 
@@ -201,4 +200,25 @@ pub fn from_fasta_inner(
     };
 
     Ok(value_records)
+}
+
+/// Go from a parsed nuon fasta structure to a string to stdout
+pub fn nuon_to_fasta(call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
+    let mut out = String::new();
+
+    if let Ok(list) = input.as_list() {
+        for el in list {
+            let inner = el.as_record()?;
+            let mut vals = inner.vals.clone();
+            let last = vals.pop().unwrap();
+            let sequence = last.as_string()?;
+
+            let header: Result<Vec<String>, ShellError> =
+                vals.iter().map(|e| e.as_string()).collect();
+            let header_string = header?.join(" ");
+
+            out += &format!(">{}\n{}\n", header_string, sequence)
+        }
+    }
+    Ok(Value::string(out, call.head))
 }
