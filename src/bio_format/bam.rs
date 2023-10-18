@@ -136,11 +136,11 @@ pub fn parse_header(call: &EvaluatedCall, h: &sam::Header) -> Value {
 
     Value::record(
         record! {
-        HEADER_COLUMNS[0] => header_nuon,
-        HEADER_COLUMNS[1] =>    reference_sequences_nuon,
-        HEADER_COLUMNS[2] =>   read_groups_nuon,
-        HEADER_COLUMNS[3] =>    programs_nuon,
-        HEADER_COLUMNS[4] => comments_nuon,
+            HEADER_COLUMNS[0] => header_nuon,
+            HEADER_COLUMNS[1] => reference_sequences_nuon,
+            HEADER_COLUMNS[2] => read_groups_nuon,
+            HEADER_COLUMNS[3] => programs_nuon,
+            HEADER_COLUMNS[4] => comments_nuon,
         },
         call.head,
     )
@@ -200,7 +200,7 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
 
     // TODO: better error handling here.
     let header = if raw_header.is_empty() {
-        let ref_seqs = reader.read_reference_sequences().unwrap();
+        let ref_seqs = raw_header.reference_sequences().clone();
 
         parse_header(
             call,
@@ -210,12 +210,11 @@ pub fn from_bam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
         )
     } else {
         // this is required for reasons unclear to me...
-        let _ = reader.read_reference_sequences().unwrap();
-        parse_header(call, &raw_header.parse().unwrap())
+        parse_header(call, &raw_header)
     };
 
     let value_records = reader
-        .records()
+        .records(&raw_header)
         .map(|record| {
             let r = record.map_err(|e| LabeledError {
                 label: "Record reading failed.".into(),
@@ -250,8 +249,11 @@ pub fn from_sam_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Labe
     let stream = input.as_binary().unwrap();
 
     let mut reader = sam::Reader::new(stream);
-    // TODO: remove this unwrap
-    let header = reader.read_header().unwrap().parse().unwrap();
+    let header = reader.read_header().map_err(|err| LabeledError {
+        label: "Unable to parse SAM header".into(),
+        msg: format!("{}", err),
+        span: Some(call.head),
+    })?;
     let header_nuon = parse_header(call, &header);
 
     let value_records = reader

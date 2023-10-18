@@ -44,10 +44,10 @@ const HEADER_COLUMNS: &[&str] = &[
     "filter",
     "format",
     "alt_alleles",
-    "assembly",
+    // "assembly",
     "contig",
-    "meta",
-    "pedigree",
+    // "meta",
+    // "pedigree",
     "samples",
 ];
 
@@ -123,11 +123,6 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
 
     let alt_alleles_nuon = Value::record(alt_alleles_inner, call.head);
 
-    // assembly
-    let assembly = call
-        .head
-        .with_string_or(h.assembly(), "No reference assembly URL specified.");
-
     // contigs
     let contigs = h.contigs();
 
@@ -148,30 +143,7 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
 
     let contigs_nuon = Value::record(contigs_inner, call.head);
 
-    // metadata
-    let meta = h.meta();
-
-    // this is horrible, sorry.
-    let meta_inner = Record::from_iter(meta.keys().map(|e| e.to_string()).zip(meta.values().map(
-        |f| {
-            // &Map<Meta> is of unknown length, so let's use Record::from_iter() again
-            let meta_inner_record = Record::from_iter(
-                f.values()
-                    .to_vec()
-                    .into_iter()
-                    .zip(f.values().iter().map(|e| call.head.with_string(e))),
-            );
-
-            Value::record(meta_inner_record, call.head)
-        },
-    )));
-
-    let meta_nuon = Value::record(meta_inner, call.head);
-
-    // don't know how to parse Pedigrees currently?
-    let pedigree_nuon = call
-        .head
-        .with_string_or(h.pedigree_db(), "No pedigree database.");
+    // metadata, assembly, and pedigree are not currently parsed.
 
     // sample names
     let sample_names_nuon = Value::list(
@@ -191,10 +163,7 @@ fn parse_header(call: &EvaluatedCall, h: &vcf::Header) -> Value {
             filters_nuon,
             formats_nuon,
             alt_alleles_nuon,
-            assembly,
             contigs_nuon,
-            meta_nuon,
-            pedigree_nuon,
             sample_names_nuon,
         ])),
         call.head,
@@ -233,17 +202,6 @@ fn read_bcf_header(
         r: &mut bcf::Reader<R>,
         call: &EvaluatedCall,
     ) -> Result<(vcf::Header, StringMaps, Value), LabeledError> {
-        match r.read_file_format() {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Could not read file format".into(),
-                    msg: format!("file format unreadable due to: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
-
         let raw_header = match r.read_header() {
             Ok(e) => e,
             Err(e) => {
@@ -255,13 +213,11 @@ fn read_bcf_header(
             }
         };
 
+        let header_nuon = parse_header(call, &raw_header);
         // TODO: remove this unwrap
-        let header: vcf::Header = raw_header.parse().unwrap();
-        let header_nuon = parse_header(call, &header);
-        // TODO: remove this unwrap
-        let string_maps: StringMaps = raw_header.parse().unwrap();
+        let string_maps = r.string_maps().clone();
 
-        Ok((header, string_maps, header_nuon))
+        Ok((raw_header, string_maps, header_nuon))
     }
 
     match reader {
@@ -274,11 +230,11 @@ fn read_bcf_header(
 fn iterate_bcf_records<R: BufRead>(
     mut reader: bcf::Reader<R>,
     header: vcf::Header,
-    string_maps: StringMaps,
+    _string_maps: StringMaps,
     call: &EvaluatedCall,
     value_records: &mut Vec<Value>,
 ) -> Result<(), LabeledError> {
-    for record in reader.records() {
+    for record in reader.records(&header) {
         let r = match record {
             Ok(rec) => rec,
             Err(e) => {
@@ -290,19 +246,8 @@ fn iterate_bcf_records<R: BufRead>(
             }
         };
 
-        let v_r = match r.try_into_vcf_record(&header, &string_maps) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Failed converting BCF record to VCF record.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        };
-
         let mut vec_vals = Vec::new();
-        add_record(call, v_r, &mut vec_vals);
+        add_record(call, r, &mut vec_vals);
 
         let record_inner =
             Record::from_iter(VCF_COLUMNS.iter().map(|e| e.to_string()).zip(vec_vals));
@@ -386,14 +331,9 @@ fn read_vcf_header(
             }
         };
 
-        let header: vcf::Header = match raw_header.parse() {
-            Ok(h) => h,
-            // is this okay? we could do some nu_plugin_bio/noodles specific thing here.
-            Err(_) => vcf::Header::default(),
-        };
-        let header_nuon = parse_header(call, &header);
+        let header_nuon = parse_header(call, &raw_header);
 
-        Ok((header, header_nuon))
+        Ok((raw_header, header_nuon))
     }
 
     match reader {

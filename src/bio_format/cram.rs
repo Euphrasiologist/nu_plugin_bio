@@ -35,16 +35,7 @@ pub fn from_cram_inner(call: &EvaluatedCall, input: &Value) -> Result<Value, Lab
     };
 
     let header: sam::Header = match reader.read_file_header() {
-        Ok(s) => match s.parse() {
-            Ok(s_p) => s_p,
-            Err(e) => {
-                return Err(LabeledError {
-                    label: "Parsing SAM header from CRAM file failed.".into(),
-                    msg: format!("cause of failure: {}", e),
-                    span: Some(call.head),
-                })
-            }
-        },
+        Ok(s) => s,
         Err(e) => {
             return Err(LabeledError {
                 label: "CRAM file header reading failed.".into(),
