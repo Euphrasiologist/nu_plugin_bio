@@ -2,7 +2,7 @@ use crate::bio_format::bam::{from_bam_inner, from_sam_inner};
 use crate::bio_format::bcf::{from_bcf_inner, from_vcf_inner};
 use crate::bio_format::bed::from_bed_inner;
 use crate::bio_format::cram::from_cram_inner;
-use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner, nuon_to_fasta};
+use crate::bio_format::fasta::{from_fasta_inner, from_fastq_inner, nuon_to_fasta, nuon_to_fastq};
 use crate::bio_format::gfa::from_gfa_inner;
 use crate::bio_format::gff::from_gff_inner;
 use crate::bio_format::Compression;
@@ -38,6 +38,11 @@ impl Bio {
     ) -> Result<Value, LabeledError> {
         let value_records = from_fastq_inner(call, input, gz)?;
         Ok(Value::list(value_records, call.head))
+    }
+
+    /// Structured data to fastq
+    pub fn to_fastq(&self, call: &EvaluatedCall, input: &Value) -> Result<Value, LabeledError> {
+        nuon_to_fastq(call, input)
     }
 
     /// These B(S)AM functions are quite slow at the moment.

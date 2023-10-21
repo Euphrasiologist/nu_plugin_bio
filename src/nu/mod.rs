@@ -92,6 +92,8 @@ impl Plugin for Bio {
                     Some('q'),
                 )
                 .category(Category::Experimental),
+            PluginSignature::build("to fastq")
+                .usage("Print out a fastq from structured nuon"),
             PluginSignature::build("from bam")
                 .usage("Parse a BAM file.\nReturns a record containing the header and the body of the BAM file.")
                 .category(Category::Experimental),
@@ -144,6 +146,7 @@ impl Plugin for Bio {
             "from fastq.gz" => self.from_fastq(call, input, Compression::Gzipped),
             "from fq.gz" => self.from_fastq(call, input, Compression::Gzipped),
             "to fasta" => self.to_fasta(call, input),
+            "to fastq" => self.to_fastq(call, input),
             "from bam" => self.from_bam(call, input),
             "from sam" => self.from_sam(call, input),
             "from cram" => self.from_cram(call, input),
